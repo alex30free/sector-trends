@@ -25,7 +25,24 @@ from datetime import date, datetime, timedelta, timezone
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.normpath(os.path.join(HERE, "..", "data.json"))
 START = date(2006, 1, 6)            # first Friday of the series
+MAX_WEEKLY_MOVE = 2.0                # a weekly change above x2 or below x0.5 is treated as bad data
 UA = "Mozilla/5.0 (compatible; StockLab sector trends; github.com/alex30free)"
+
+# Nasdaq Stockholm size segments (price indices). Nasdaq's API serves the latest ~10 years of
+# daily values; older weeks already in data.json are kept, so the history grows over time.
+# The Yahoo symbol is only a fallback for the latest days if Nasdaq's API cannot be reached.
+SEGMENTS = [
+    ("large", "Large Cap", "IX13942", "^OMXSLCPI"),
+    ("mid", "Mid Cap", "IX3362", "^OMXSMCPI"),
+    ("small", "Small Cap", "IX3364", "^OMXSSCPI"),
+]
+BROWSER_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Origin": "https://www.nasdaq.com",
+    "Referer": "https://www.nasdaq.com/",
+}
 
 # Edit this list to change sectors or members. Tickers are Yahoo Finance symbols.
 SECTORS = [
@@ -79,6 +96,30 @@ def fetch_daily(symbol):
             last_err = exc
             time.sleep(2)
     raise RuntimeError(last_err)
+
+
+def fetch_nasdaq_index(orderbook_id):
+    """Daily (date, close) for a Nasdaq Nordic index, latest ~10 years."""
+    today = date.today()
+    url = ("https://api.nasdaq.com/api/nordic/instruments/%s/chart?assetClass=INDEXES&lang=en"
+           "&fromDate=%s&toDate=%s" % (orderbook_id, (today - timedelta(days=3650)).isoformat(), today.isoformat()))
+    req = urllib.request.Request(url, headers=BROWSER_HEADERS)
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        js = json.loads(resp.read().decode("utf-8"))
+    rows = []
+    for pt in (js.get("data") or {}).get("CP") or []:
+        z = pt.get("z") or {}
+        try:
+            d = date.fromisoformat(z["dateTime"][:10])
+            c = float(str(z.get("close") or z.get("value")).replace(",", ""))
+        except (KeyError, ValueError, TypeError):
+            continue
+        if c > 0:
+            rows.append((d, c))
+    rows.sort()
+    if len(rows) < 20:
+        raise ValueError("only %d rows" % len(rows))
+    return rows
 
 
 def price_index(rows):
@@ -153,7 +194,36 @@ def main():
                 stocks[sym] = {"name": name, "close": (old + [old[-1]] * len(weeks))[:len(weeks)], "stale": True}
                 print("WARN %-12s kept previous data" % sym)
 
-    sectors, index = [], {}
+    # Size segments: Nasdaq history merged with what we already have
+    prev_seg = {}
+    if prev_weeks.get("start") == START.isoformat():
+        prev_seg = {x["id"]: x["close"] for x in prev.get("segments", [])}
+    segments = []
+    for sid, sname, nid, ysym in SEGMENTS:
+        old = prev_seg.get(sid, [])
+        try:
+            rows = fetch_nasdaq_index(nid)
+            src = "Nasdaq"
+        except Exception as exc:  # noqa: BLE001
+            try:
+                rows = [(d, c) for d, c, _ in fetch_daily(ysym)]
+                src = "Yahoo (fallback: %s)" % exc
+            except Exception as exc2:  # noqa: BLE001
+                rows, src = [], "none (%s / %s)" % (exc, exc2)
+        new = weekly(rows, weeks) if rows else [None] * len(weeks)
+        if rows:   # weeks before the first fetched day have no value from this fetch
+            first = rows[0][0]
+            new = [None if f < first else v for f, v in zip(weeks, new)]
+        merged = [n if n is not None else (old[k] if k < len(old) else None) for k, n in enumerate(new)]
+        known = [k for k, v in enumerate(merged) if v is not None]
+        if known:   # carry the last known value into the latest week(s)
+            for k in range(known[-1] + 1, len(merged)):
+                merged[k] = merged[known[-1]]
+        segments.append({"id": sid, "name": sname, "symbol": ysym.lstrip("^"), "close": [r(v) for v in merged]})
+        n_ok = sum(1 for v in merged if v is not None)
+        print("SEG  %-10s %4d weeks with data, source %s" % (sname, n_ok, src))
+
+    sectors, index, ignored = [], {}, []
     for sid, sname, members in SECTORS:
         syms = [s for s, _ in members if s in stocks]
         idx, level = [], None
@@ -167,6 +237,9 @@ def main():
             for s in syms:
                 a, b = stocks[s]["close"][k - 1], stocks[s]["close"][k]
                 if a and b:
+                    if b / a > MAX_WEEKLY_MOVE or b / a < 1 / MAX_WEEKLY_MOVE:
+                        ignored.append("%s %s x%.2f" % (s, weeks[k], b / a))   # unadjusted split or bad tick
+                        continue
                     rets.append(b / a - 1)
             if rets:
                 level *= 1 + sum(rets) / len(rets)
@@ -175,6 +248,8 @@ def main():
         sectors.append({"id": sid, "name": sname, "members": [s for s, _ in members],
                         "missing": [s for s, _ in members if s not in stocks]})
 
+    for line in ignored:
+        print("NOTE ignored weekly move (bad data?): " + line)
     payload = {
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "data_through": last_day.isoformat(),
@@ -183,7 +258,9 @@ def main():
         "weeks": {"start": START.isoformat(), "count": len(weeks), "step_days": 7},
         "sectors": sectors,
         "index": index,
+        "segments": segments,
         "stocks": stocks,
+        "ignored_moves": ignored,
     }
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))

@@ -88,8 +88,37 @@
 
   <header>
     <h1>Swedish Sector<br><em>Trends</em></h1>
-    <p class="lede">Ten home-made sector indices from Swedish stocks, each with its 40-week moving average (MA40, about 200 trading days). A sector above its MA40 is in an uptrend; below it, a downtrend. Updated automatically every Friday.</p>
+    <p class="lede">How Large, Mid and Small Cap are doing, plus ten home-made sector indices from Swedish stocks, each with its 40-week moving average (MA40, about 200 trading days). A sector above its MA40 is in an uptrend; below it, a downtrend. Updated automatically every Friday.</p>
   </header>
+
+  <section class="card" id="segments">
+    <div class="sec-head">
+      <div>
+        <h2>Swedish stock market by size</h2>
+        <p class="note">OMX Stockholm Large Cap, Mid Cap and Small Cap (price indices). All three start at 100 at the beginning of the chosen period, so the lines show directly which part of the market has done best. Dashed lines: each index's 40-week moving average.</p>
+      </div>
+      <div class="controls">
+        <div class="seg" id="segma-seg" role="group" aria-label="Moving averages">
+          <button type="button" data-ma="1" aria-pressed="false">MA40 on</button>
+          <button type="button" data-ma="0" aria-pressed="true">Off</button>
+        </div>
+        <div class="seg" id="segrange-seg" role="group" aria-label="Period">
+          <button type="button" data-weeks="52" aria-pressed="false">1y</button>
+          <button type="button" data-weeks="156" aria-pressed="false">3y</button>
+          <button type="button" data-weeks="260" aria-pressed="false">5y</button>
+          <button type="button" data-weeks="0" aria-pressed="true">Since 2016</button>
+        </div>
+      </div>
+    </div>
+    <div class="legend" id="seg-legend" style="margin-top:12px"></div>
+    <div class="chart" id="c-seg" style="min-height:340px"></div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Index</th><th id="seg-period-h">Since 2016</th><th>4 weeks</th><th>52 weeks</th><th>Trend</th><th>vs MA40</th><th>Since</th></tr></thead>
+        <tbody id="t-seg"></tbody>
+      </table>
+    </div>
+  </section>
 
   <section class="card" id="summary">
     <h2>The situation right now</h2>
@@ -139,6 +168,8 @@
       <dd>Weekly closing prices (the last trading day of each week) from Yahoo Finance, adjusted by Yahoo for share splits and spin-offs. Dividends are not added back, so it is a price index, like a normal price chart.</dd>
       <dt>MA40</dt>
       <dd>The average of the last 40 weekly values, about 200 trading days. Above the MA40 = uptrend, below = downtrend. "Since" is the week the line last crossed its MA40.</dd>
+      <dt>Large, Mid and Small Cap</dt>
+      <dd>Nasdaq's official OMX Stockholm Large Cap, Mid Cap and Small Cap price indices (weekly closes), from Nasdaq's website. Free history goes back 10 years (to November 2016); new weeks are added every Friday. In the chart all three are set to 100 at the start of the chosen period.</dd>
       <dt>Caveat</dt>
       <dd>Moving-average signals lag and can flip back and forth in sideways markets. This is an overview tool, not a buy or sell signal.</dd>
     </dl>
@@ -152,7 +183,8 @@
 
 <script>
 (function () {
-  let DATA = null, WEEKS = 0, SCALE = 'lin';
+  let DATA = null, WEEKS = 0, SCALE = 'lin', SEGWEEKS = 0, SEGMA = false;
+  const SEGCOL = { large: '#0099ff', mid: '#cc44ff', small: '#ff7a59' };
   const f1 = d3.format('.1f');
   const pct = (v) => v == null ? '–' : (v >= 0 ? '+' : '') + f1(v) + '%';
   const fday = d3.utcFormat('%-d %b %Y');
@@ -160,8 +192,11 @@
 
   function weekDate(k) {
     const [y, m, d] = DATA.weeks.start.split('-').map(Number);
-    return new Date(Date.UTC(y, m - 1, d + 7 * k));
+    const dt = new Date(Date.UTC(y, m - 1, d + 7 * k));
+    const thru = DATA.data_through ? new Date(DATA.data_through + 'T00:00:00Z') : null;
+    return thru && dt > thru ? thru : dt;   // the current week is labelled with the latest data day
   }
+  const andList = (arr) => arr.length <= 1 ? arr.join('') : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
   // series with MA40 and trend facts
   function analyse(values) {
     const rows = values.map((v, k) => {
@@ -226,6 +261,16 @@
       t('. ');
     } else t('No sector has crossed its MA40 in the last 4 weeks. ');
     t('Across all ' + stocks.length + ' stocks, '); b(sUp + ' (' + Math.round(sUp / stocks.length * 100) + '%)'); t(' are above their own MA40.');
+    const ss = segmentSentence();
+    if (ss) {
+      t(' By company size, over the last 52 weeks ');
+      ss.best.forEach((x, i) => { if (i) t(i === ss.best.length - 1 ? ' and ' : ', '); b(x.g.name, x.a.ch52 >= 0 ? 'up' : 'down'); t(' ' + pct(x.a.ch52)); });
+      t('; ');
+      if (ss.up.length) { b(andList(ss.up), 'up'); t(ss.up.length > 1 ? ' are' : ' is'); t(' above'); }
+      if (ss.up.length && ss.down.length) t(' and ');
+      if (ss.down.length) { b(andList(ss.down), 'down'); t(ss.down.length > 1 ? ' are' : ' is'); t(' below'); }
+      t(' the 40-week average.');
+    }
 
     // table
     const tb = document.getElementById('t-sum'); tb.replaceChildren();
@@ -328,6 +373,99 @@
     });
   }
 
+  function drawSegments() {
+    const card = document.getElementById('segments');
+    if (!DATA.segments || !DATA.segments.length) { card.hidden = true; return; }
+    const segs = DATA.segments.map((g) => ({ g, a: analyse(g.close) })).filter((x) => x.a.rows.length);
+    // common window: weeks where all three have data
+    const firstK = Math.max(...segs.map((x) => x.a.rows[0].k));
+    const lastK = Math.min(...segs.map((x) => x.a.rows[x.a.rows.length - 1].k));
+    const startK = SEGWEEKS ? Math.max(firstK, lastK - SEGWEEKS) : firstK;
+    const series = segs.map(({ g, a }) => {
+      const rows = a.rows.filter((r) => r.k >= startK && r.k <= lastK);
+      const base = rows[0].v;
+      return { g, a, base, rows: rows.map((r) => ({ date: r.date, v: r.v / base * 100, ma: r.ma == null ? null : r.ma / base * 100, raw: r.v })) };
+    });
+    const label = SEGWEEKS ? ({ 52: '1 year', 156: '3 years', 260: '5 years' })[SEGWEEKS] : 'Since ' + d3.utcFormat('%b %Y')(weekDate(firstK));
+    document.getElementById('seg-period-h').textContent = label;
+
+    // legend
+    const lg = document.getElementById('seg-legend'); lg.replaceChildren();
+    series.forEach((s) => { const sp = el('span', null, null, lg); const sw = el('span', 'sw', null, sp); sw.style.background = SEGCOL[s.g.id]; sp.appendChild(document.createTextNode(s.g.name)); });
+
+    // chart
+    const holder = document.getElementById('c-seg'); holder.replaceChildren();
+    const W = Math.max(300, holder.clientWidth), H = 340, mt = 12, mb = 24;
+    const svg = d3.select(holder).append('svg').attr('width', '100%').attr('height', H).attr('viewBox', `0 0 ${W} ${H}`);
+    const all = series.flatMap((s) => s.rows.flatMap((r) => (SEGMA && r.ma != null) ? [r.v, r.ma] : [r.v]));
+    const y = d3.scaleLinear(d3.extent(all.concat([100])), [H - mb, mt]).nice();
+    const yt = y.ticks(6);
+    const ends = series.map((s) => ({ s, last: s.rows[s.rows.length - 1] }));
+    const endTxt = (e) => e.s.g.name + ' ' + pct(e.last.v - 100);
+    const left = measure(svg, yt.map((v) => d3.format('.0f')(v))) + 8, right = measure(svg, ends.map(endTxt)) + 16;
+    const x = d3.scaleUtc(d3.extent(series[0].rows, (r) => r.date), [left, W - right]);
+    svg.append('g').selectAll('line').data(yt).join('line').attr('x1', left).attr('x2', W - right).attr('y1', y).attr('y2', y).attr('stroke', (v) => v === 100 ? 'var(--muted)' : 'var(--border)');
+    svg.append('g').selectAll('text').data(yt).join('text').attr('class', 'tick').attr('x', left - 6).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text((v) => d3.format('.0f')(v));
+    const span = (series[0].rows[series[0].rows.length - 1].date - series[0].rows[0].date) / (365.25 * 864e5);
+    svg.append('g').selectAll('text').data(x.ticks(span <= 2.5 ? (W < 560 ? 3 : 6) : (W < 560 ? 4 : 8))).join('text').attr('class', 'tick').attr('x', x).attr('y', H - 6).attr('text-anchor', 'middle')
+      .text(span <= 2.5 ? d3.utcFormat('%b %Y') : d3.utcFormat('%Y'));
+    series.forEach((s) => {
+      if (SEGMA) svg.append('path').datum(s.rows).attr('d', d3.line().defined((r) => r.ma != null).x((r) => x(r.date)).y((r) => y(r.ma)))
+        .attr('fill', 'none').attr('stroke', SEGCOL[s.g.id]).attr('stroke-width', 1.2).attr('stroke-dasharray', '4 3').attr('opacity', 0.8);
+      svg.append('path').datum(s.rows).attr('d', d3.line().x((r) => x(r.date)).y((r) => y(r.v)))
+        .attr('fill', 'none').attr('stroke', SEGCOL[s.g.id]).attr('stroke-width', 2).attr('stroke-linejoin', 'round');
+    });
+    // end labels, pushed apart so they never overlap
+    const lab = ends.map((e) => ({ e, y: y(e.last.v) })).sort((a, b) => a.y - b.y);
+    for (let i = 1; i < lab.length; i++) if (lab[i].y - lab[i - 1].y < 14) lab[i].y = lab[i - 1].y + 14;
+    lab.forEach((l) => {
+      svg.append('circle').attr('cx', x(l.e.last.date)).attr('cy', y(l.e.last.v)).attr('r', 3.5).attr('fill', SEGCOL[l.e.s.g.id]);
+      svg.append('text').attr('class', 'tick').attr('x', x(l.e.last.date) + 8).attr('y', l.y).attr('dy', '0.32em').attr('fill', SEGCOL[l.e.s.g.id]).text(endTxt(l.e));
+    });
+    // tooltip
+    const tip = el('div', 'tip', null, holder); tip.hidden = true;
+    const hover = svg.append('g').style('display', 'none');
+    const rule = hover.append('line').attr('y1', mt).attr('y2', H - mb).attr('stroke', 'var(--ref)');
+    const dots = series.map((s) => hover.append('circle').attr('r', 3.5).attr('fill', SEGCOL[s.g.id]));
+    const bis = d3.bisector((r) => r.date).center;
+    svg.append('rect').attr('x', left).attr('y', mt).attr('width', Math.max(0, W - right - left)).attr('height', H - mt - mb).attr('fill', 'transparent')
+      .on('pointermove', (e) => {
+        const [px] = d3.pointer(e, svg.node()); const i = bis(series[0].rows, x.invert(px)); const d0 = series[0].rows[i]; if (!d0) return;
+        hover.style('display', null); rule.attr('x1', x(d0.date)).attr('x2', x(d0.date));
+        tip.replaceChildren(); el('div', 'dim', 'Week of ' + fday(d0.date), tip);
+        series.forEach((s, j) => { const r = s.rows[i]; if (!r) return; dots[j].attr('cx', x(r.date)).attr('cy', y(r.v));
+          const line = el('div', null, s.g.name + '  ' + f1(r.v) + '  (' + pct(r.v - 100) + ')', tip); line.style.color = SEGCOL[s.g.id]; });
+        tip.hidden = false;
+        const er = holder.getBoundingClientRect(), sr = svg.node().getBoundingClientRect(), sc = sr.width / W;
+        const px2 = x(d0.date) * sc + sr.left - er.left;
+        let lft = px2 + 12; if (lft + tip.offsetWidth > holder.clientWidth) lft = px2 - tip.offsetWidth - 12;
+        tip.style.left = Math.max(0, lft) + 'px'; tip.style.top = '8px';
+      })
+      .on('pointerleave', () => { hover.style('display', 'none'); tip.hidden = true; });
+
+    // table
+    const tb = document.getElementById('t-seg'); tb.replaceChildren();
+    series.forEach((s) => {
+      const a = s.a, last = s.rows[s.rows.length - 1], tr = el('tr', null, null, tb);
+      const name = el('td', null, null, tr); const sw = el('span', 'sw', null, name); sw.style.background = SEGCOL[s.g.id]; name.appendChild(document.createTextNode(s.g.name));
+      const chg = last.v - 100; el('td', chg >= 0 ? 'up' : 'down', pct(chg), tr);
+      el('td', a.ch4 >= 0 ? 'up' : 'down', pct(a.ch4), tr);
+      el('td', a.ch52 >= 0 ? 'up' : 'down', pct(a.ch52), tr);
+      el('td', a.above ? 'up' : 'down', a.diff == null ? '–' : (a.above ? '▲ Up' : '▼ Down'), tr);
+      el('td', a.above ? 'up' : 'down', pct(a.diff), tr);
+      el('td', null, a.since ? fday(a.since) : '–', tr);
+    });
+  }
+
+  function segmentSentence() {
+    if (!DATA.segments || !DATA.segments.length) return null;
+    const segs = DATA.segments.map((g) => ({ g, a: analyse(g.close) })).filter((x) => x.a.ch52 != null);
+    if (!segs.length) return null;
+    const best = segs.slice().sort((a, b) => b.a.ch52 - a.a.ch52);
+    const up = segs.filter((x) => x.a.above).map((x) => x.g.name), down = segs.filter((x) => !x.a.above).map((x) => x.g.name);
+    return { best, up, down };
+  }
+
   function wireSeg(id, fn) {
     document.querySelectorAll('#' + id + ' button').forEach((btn) => btn.addEventListener('click', () => {
       document.querySelectorAll('#' + id + ' button').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
@@ -340,10 +478,15 @@
     .then((d) => {
       DATA = d;
       document.getElementById('updated').textContent = 'Data through ' + d.data_through;
-      computeAll(); drawSummary(); drawSectors();
+      computeAll(); drawSegments(); drawSummary(); drawSectors();
       wireSeg('range-seg', (b) => { WEEKS = Number(b.dataset.weeks); });
       wireSeg('scale-seg', (b) => { SCALE = b.dataset.scale; });
-      let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawCharts, 150); });
+      ['segrange-seg', 'segma-seg'].forEach((id) => document.querySelectorAll('#' + id + ' button').forEach((btn) => btn.addEventListener('click', () => {
+        document.querySelectorAll('#' + id + ' button').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
+        if (id === 'segrange-seg') SEGWEEKS = Number(btn.dataset.weeks); else SEGMA = btn.dataset.ma === '1';
+        drawSegments();
+      })));
+      let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawCharts(); drawSegments(); }, 150); });
     })
     .catch((e) => {
       document.getElementById('updated').textContent = 'Could not load data';
