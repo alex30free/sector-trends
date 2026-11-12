@@ -75,6 +75,25 @@
     details dt { color: var(--text); margin-top: 10px; }
     footer { border-top: 1px solid var(--border); padding-top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .err { color: var(--down); font-family: 'IBM Plex Mono', monospace; }
+    .warn { color: var(--ma); }
+    /* bull-trend check */
+    #verdict { border-left: 3px solid var(--border2); }
+    #verdict.v-up { border-left-color: var(--up); } #verdict.v-warn { border-left-color: var(--ma); } #verdict.v-down { border-left-color: var(--down); }
+    .v-row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; margin-top: 12px; }
+    .v-main { min-width: 220px; }
+    .v-label { font-family: 'IBM Plex Mono', monospace; font-size: clamp(22px, 3vw, 30px); font-weight: 500; line-height: 1.2; }
+    .v-score { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--muted2); margin-top: 6px; }
+    .v-meter { display: flex; gap: 4px; margin-top: 10px; }
+    .v-meter span { width: 26px; height: 8px; border-radius: 2px; background: var(--border2); }
+    .v-text { flex: 1; min-width: 260px; font-size: 14px; line-height: 1.65; }
+    .checks { list-style: none; margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 8px 20px; }
+    .checks li { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .checks .ic { font-family: 'IBM Plex Mono', monospace; }
+    .checks .what { color: var(--text); }
+    .checks .what small { display: block; color: var(--muted2); font-size: 12px; margin-top: 2px; }
+    .checks .v { font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right; white-space: nowrap; }
+    .hist { margin-top: 14px; font-size: 13px; color: var(--muted2); line-height: 1.6; }
+    .hist b { color: var(--text); font-weight: 400; }
   </style>
 </head>
 <body>
@@ -88,14 +107,29 @@
 
   <header>
     <h1>Swedish Sector<br><em>Trends</em></h1>
-    <p class="lede">How Large, Mid and Small Cap are doing, plus ten home-made sector indices from Swedish stocks, each with its 40-week moving average (MA40, about 200 trading days). A sector above its MA40 is in an uptrend; below it, a downtrend. Updated automatically every Friday.</p>
+    <p class="lede">A combined bull-trend check for the Stockholm exchange, market breadth, how Large, Mid and Small Cap are doing, plus ten home-made sector indices from Swedish stocks, each with its 40-week moving average (MA40, about 200 trading days). A sector above its MA40 is in an uptrend; below it, a downtrend. Updated automatically every Friday.</p>
   </header>
+
+  <section class="card" id="verdict">
+    <h2>Bull-trend check · <span id="v-mkt">OMX Stockholm All-Share</span></h2>
+    <p class="note">Six well-tested trend signals combined: four on the index price (trend, momentum, market structure) and two on market breadth. The more of them agree, the more robust the signal.</p>
+    <div class="v-row">
+      <div class="v-main">
+        <div class="v-label" id="v-label">–</div>
+        <div class="v-meter" id="v-meter"></div>
+        <div class="v-score" id="v-score"></div>
+      </div>
+      <p class="v-text" id="v-text"></p>
+    </div>
+    <ul class="checks" id="v-checks"></ul>
+    <p class="hist" id="v-hist"></p>
+  </section>
 
   <section class="card" id="segments">
     <div class="sec-head">
       <div>
         <h2>Swedish stock market by size</h2>
-        <p class="note">OMX Stockholm Large Cap, Mid Cap and Small Cap (price indices). All three start at 100 at the beginning of the chosen period, so the lines show directly which part of the market has done best. Dashed lines: each index's 40-week moving average.</p>
+        <p class="note">OMX Stockholm Large Cap, Mid Cap and Small Cap, plus OMXSPI for the whole exchange (price indices). All start at 100 at the beginning of the chosen period, so the lines show directly which part of the market has done best. Dashed lines: each index's 40-week moving average.</p>
       </div>
       <div class="controls">
         <div class="seg" id="segma-seg" role="group" aria-label="Moving averages">
@@ -118,6 +152,33 @@
         <tbody id="t-seg"></tbody>
       </table>
     </div>
+  </section>
+
+  <section class="card" id="breadth">
+    <div class="sec-head">
+      <div>
+        <h2>Market breadth</h2>
+        <p class="note">Is the move carried by many stocks or just a few? Measured on the page's <span id="b-n">45</span> stocks. A rise that most stocks take part in tends to last longer than one carried by a handful of heavyweights.</p>
+      </div>
+      <div class="controls">
+        <div class="seg" id="brange-seg" role="group" aria-label="Period">
+          <button type="button" data-weeks="104" aria-pressed="false">2y</button>
+          <button type="button" data-weeks="260" aria-pressed="true">5y</button>
+          <button type="button" data-weeks="520" aria-pressed="false">10y</button>
+          <button type="button" data-weeks="0" aria-pressed="false">Since 2006</button>
+        </div>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label">Stocks above MA40</div><div class="kpi-val" id="b-pct">–</div><div class="kpi-sub" id="b-pct-sub"></div></div>
+      <div class="kpi"><div class="kpi-label">Advance/decline line</div><div class="kpi-val" id="b-ad">–</div><div class="kpi-sub" id="b-ad-sub"></div></div>
+      <div class="kpi"><div class="kpi-label">52-week highs / lows</div><div class="kpi-val" id="b-hl">–</div><div class="kpi-sub" id="b-hl-sub"></div></div>
+      <div class="kpi"><div class="kpi-label">Last breadth thrust</div><div class="kpi-val" id="b-th">–</div><div class="kpi-sub" id="b-th-sub"></div></div>
+    </div>
+    <div class="legend" style="margin-top:16px"><span><span class="sw" style="background:var(--teal)"></span>Share of stocks above their own MA40 (%)</span><span><span class="sw" style="background:var(--muted2)"></span>40% and 60% lines</span></div>
+    <div class="chart" id="c-pct" style="min-height:220px"></div>
+    <div class="legend" style="margin-top:14px"><span><span class="sw" style="background:var(--line)"></span>Advance/decline line (cumulative: stocks up minus stocks down each week)</span><span><span class="sw" style="background:var(--ma)"></span>40-week moving average</span></div>
+    <div class="chart" id="c-ad" style="min-height:220px"></div>
   </section>
 
   <section class="card" id="summary">
@@ -170,6 +231,12 @@
       <dd>The average of the last 40 weekly values, about 200 trading days. Above the MA40 = uptrend, below = downtrend. "Since" is the week the line last crossed its MA40.</dd>
       <dt>Large, Mid and Small Cap</dt>
       <dd>Nasdaq's official OMX Stockholm Large Cap, Mid Cap and Small Cap price indices (weekly closes), from Nasdaq's website. Free history goes back 10 years (to November 2016); new weeks are added every Friday. In the chart all three are set to 100 at the start of the chosen period.</dd>
+      <dt>OMXSPI</dt>
+      <dd>OMX Stockholm All-Share (price index): every share on Nasdaq Stockholm, weighted by market value. Shown with Large, Mid and Small Cap and used for the bull-trend check. If it has no data, the check uses Large Cap instead.</dd>
+      <dt>Bull-trend check</dt>
+      <dd>Six signals, each worth 1 point (breadth between 40% and 60% gives ½): (1) index above its MA40; (2) MA40 higher than 4 weeks ago; (3) index higher than 52 weeks ago (12-month momentum); (4) higher highs and higher lows: the highest and the lowest weekly close of the last 13 weeks are both above those of the 13 weeks before; (5) at least 60% of the stocks above their own MA40; (6) the advance/decline line above its MA40. 5–6 points with the index above its MA40 = robust bull trend. The history line counts every past week with the same score and checks the index 26 weeks later. The periods overlap, so it is a rough guide, not a proof.</dd>
+      <dt>Market breadth</dt>
+      <dd>Calculated from the page's own stocks, the larger Swedish companies chosen today, not all stocks on the exchange. Stocks that were delisted, like those that went bankrupt, are missing, which flatters the old history a little. A breadth thrust here means the share above MA40 rising from under 30% to over 70% within 10 weeks. That is a weekly version of Martin Zweig's daily signal, so it is not the same thing.</dd>
       <dt>Caveat</dt>
       <dd>Moving-average signals lag and can flip back and forth in sideways markets. This is an overview tool, not a buy or sell signal.</dd>
     </dl>
@@ -184,7 +251,8 @@
 <script>
 (function () {
   let DATA = null, WEEKS = 0, SCALE = 'lin', SEGWEEKS = 0, SEGMA = false;
-  const SEGCOL = { large: '#0099ff', mid: '#cc44ff', small: '#ff7a59' };
+  const SEGCOL = { large: '#0099ff', mid: '#cc44ff', small: '#ff7a59', all: '#e8eef4' };
+  let BWEEKS = 260, B = null;
   const f1 = d3.format('.1f');
   const pct = (v) => v == null ? '–' : (v >= 0 ? '+' : '') + f1(v) + '%';
   const fday = d3.utcFormat('%-d %b %Y');
@@ -459,11 +527,191 @@
 
   function segmentSentence() {
     if (!DATA.segments || !DATA.segments.length) return null;
-    const segs = DATA.segments.map((g) => ({ g, a: analyse(g.close) })).filter((x) => x.a.ch52 != null);
+    const segs = DATA.segments.filter((g) => g.id !== 'all').map((g) => ({ g, a: analyse(g.close) })).filter((x) => x.a.ch52 != null);
     if (!segs.length) return null;
     const best = segs.slice().sort((a, b) => b.a.ch52 - a.a.ch52);
     const up = segs.filter((x) => x.a.above).map((x) => x.g.name), down = segs.filter((x) => !x.a.above).map((x) => x.g.name);
     return { best, up, down };
+  }
+
+  // ---------- market breadth (point 4) and the combined bull-trend check ----------
+  function ma40(arr) {
+    return arr.map((v, k) => {
+      if (k < 39 || v == null) return null;
+      let s = 0; for (let j = k - 39; j <= k; j++) { if (arr[j] == null) return null; s += arr[j]; }
+      return s / 40;
+    });
+  }
+  function computeBreadth() {
+    const N = DATA.weeks.count, syms = Object.keys(DATA.stocks);
+    const closes = syms.map((s) => DATA.stocks[s].close), mas = closes.map(ma40);
+    const pct = [], ad = [], highs = [], lows = [];
+    let cum = null;
+    for (let k = 0; k < N; k++) {
+      let n = 0, up = 0, adv = 0, dec = 0, hi = 0, lo = 0, nhl = 0;
+      closes.forEach((c, i) => {
+        const v = c[k];
+        if (v != null && mas[i][k] != null) { n++; if (v >= mas[i][k]) up++; }
+        if (k > 0 && v != null && c[k - 1] != null) { if (v > c[k - 1]) adv++; else if (v < c[k - 1]) dec++; }
+        if (k >= 52 && v != null && c[k - 52] != null) {
+          let mx = -Infinity, mn = Infinity;
+          for (let j = k - 51; j < k; j++) if (c[j] != null) { mx = Math.max(mx, c[j]); mn = Math.min(mn, c[j]); }
+          nhl++; if (v > mx) hi++; if (v < mn) lo++;
+        }
+      });
+      pct.push(n >= 10 ? up / n * 100 : null);
+      if (adv + dec >= 10) cum = (cum == null ? 0 : cum) + adv - dec;
+      ad.push(cum);
+      highs.push(nhl >= 10 ? hi : null); lows.push(nhl >= 10 ? lo : null);
+    }
+    // weekly breadth thrust: share above MA40 goes from < 30% to > 70% within 10 weeks
+    const thrusts = [];
+    for (let k = 1; k < N; k++) {
+      if (pct[k] == null || pct[k] <= 70 || pct[k - 1] == null || pct[k - 1] > 70) continue;
+      for (let j = Math.max(0, k - 10); j < k; j++) if (pct[j] != null && pct[j] < 30) { thrusts.push(k); break; }
+    }
+    return { n: syms.length, pct, ad, adma: ma40(ad), highs, lows, thrusts };
+  }
+
+  function marketSeg() {
+    const pick = (id) => (DATA.segments || []).find((g) => g.id === id && g.close.some((v) => v != null));
+    return pick('all') || pick('large') || null;
+  }
+
+  // score for week k: six checks, null if data are missing
+  function checksAt(k, mv, mma) {
+    if (k < 52 || mv[k] == null || mma[k] == null || mma[k - 4] == null || mv[k - 52] == null || B.pct[k] == null || B.adma[k] == null) return null;
+    const w = mv.slice(k - 25, k + 1); if (w.some((v) => v == null)) return null;
+    const a = w.slice(0, 13), b = w.slice(13);
+    const p = B.pct[k];
+    return [
+      { id: 'ma', ok: mv[k] >= mma[k] ? 1 : 0, val: pct((mv[k] / mma[k] - 1) * 100) + ' vs MA40',
+        what: 'Index above its 40-week average', why: 'Point 1: the classic trend filter' },
+      { id: 'slope', ok: mma[k] > mma[k - 4] ? 1 : 0, val: pct((mma[k] / mma[k - 4] - 1) * 100) + ' in 4 w',
+        what: 'The 40-week average is rising', why: 'Point 1: the trend itself points up' },
+      { id: 'mom', ok: mv[k] > mv[k - 52] ? 1 : 0, val: pct((mv[k] / mv[k - 52] - 1) * 100) + ' in 52 w',
+        what: 'Higher than a year ago', why: 'Point 2: 12-month momentum' },
+      { id: 'hhhl', ok: (Math.max(...b) > Math.max(...a) && Math.min(...b) > Math.min(...a)) ? 1 : 0,
+        val: (Math.max(...b) > Math.max(...a) ? 'higher high' : 'lower high') + ' · ' + (Math.min(...b) > Math.min(...a) ? 'higher low' : 'lower low'),
+        what: 'Higher highs and higher lows', why: 'Point 3: last 13 weeks vs the 13 before' },
+      { id: 'pct', ok: p >= 60 ? 1 : p >= 40 ? 0.5 : 0, val: Math.round(p) + '% of stocks',
+        what: 'Most stocks above their own MA40', why: 'Point 4: breadth, ≥ 60% is broad, < 40% is narrow' },
+      { id: 'ad', ok: B.ad[k] >= B.adma[k] ? 1 : 0, val: B.ad[k] >= B.adma[k] ? 'above its MA40' : 'below its MA40',
+        what: 'Advance/decline line rising', why: 'Point 4: more stocks rising than falling over time' },
+    ];
+  }
+  const sumOk = (c) => c.reduce((s, x) => s + x.ok, 0);
+  function verdictOf(c) {
+    const s = sumOk(c), price = c[0].ok + c[1].ok + c[2].ok + c[3].ok, br = c[4].ok + c[5].ok;
+    if (s >= 5 && c[0].ok) return { cls: 'up', label: 'Robust bull trend', text: 'Price trend, momentum and breadth all point the same way. Long-run studies of trend following find this combination to be the most reliable sign of a lasting uptrend, but it still says nothing certain about the next few months.' };
+    if (c[0].ok && price >= 3 && br < 1) return { cls: 'warn', label: 'Bull trend, but narrow', text: 'The index is in an uptrend, but few stocks take part. Rises carried by a handful of large companies have historically been more fragile.' };
+    if (s >= 3.5) return { cls: 'warn', label: 'Mixed, leaning positive', text: 'More signals are positive than negative, but they do not agree. The trend is not confirmed. Signals often flip in this zone.' };
+    if (s >= 2) return { cls: 'down', label: 'Weak, no bull trend', text: 'Most signals are negative. A few positive ones can be the start of a turn, but nothing is confirmed yet.' };
+    return { cls: 'down', label: 'Downtrend', text: 'Price trend, momentum and breadth are all negative. This is the opposite of a bull trend.' };
+  }
+
+  function drawVerdict() {
+    const card = document.getElementById('verdict');
+    const seg = marketSeg();
+    if (!seg) { card.hidden = true; return; }
+    document.getElementById('v-mkt').textContent = seg.id === 'all' ? 'OMX Stockholm All-Share (OMXSPI)' : seg.name + ' (OMXSPI has no data yet)';
+    const mv = seg.close, mma = ma40(mv);
+    let K = mv.length - 1; while (K > 0 && checksAt(K, mv, mma) == null) K--;
+    const c = checksAt(K, mv, mma);
+    if (!c) { card.hidden = true; return; }
+    const s = sumOk(c), v = verdictOf(c);
+    card.className = 'card v-' + v.cls;
+    const lb = document.getElementById('v-label'); lb.textContent = v.label; lb.className = 'v-label ' + v.cls;
+    const m = document.getElementById('v-meter'); m.replaceChildren();
+    for (let i = 0; i < 6; i++) { const sp = el('span', null, null, m); const f = Math.max(0, Math.min(1, s - i)); if (f > 0) sp.style.background = f === 1 ? 'var(--' + (v.cls === 'warn' ? 'ma' : v.cls) + ')' : 'linear-gradient(90deg, var(--ma) 50%, var(--border2) 50%)'; }
+    document.getElementById('v-score').textContent = (s % 1 ? s.toFixed(1) : s) + ' of 6 signals · week of ' + fday(weekDate(K));
+    document.getElementById('v-text').textContent = v.text;
+    const ul = document.getElementById('v-checks'); ul.replaceChildren();
+    c.forEach((x) => {
+      const li = el('li', null, null, ul);
+      const cls = x.ok === 1 ? 'up' : x.ok > 0 ? 'warn' : 'down';
+      el('span', 'ic ' + cls, x.ok === 1 ? '✓' : x.ok > 0 ? '~' : '✗', li);
+      const w = el('span', 'what', x.what, li); el('small', null, x.why, w);
+      el('span', 'v ' + cls, x.val, li);
+    });
+    // history: what happened 26 weeks after weeks with a similar score
+    const H = 26, bucket = (sc) => sc >= 5 ? 'hi' : sc <= 2 ? 'lo' : 'mid';
+    const res = { hi: [], mid: [], lo: [], all: [] }; let first = null;
+    for (let k = 52; k + H <= K; k++) {
+      const ck = checksAt(k, mv, mma); if (!ck || mv[k + H] == null) continue;
+      if (first == null) first = k;
+      const r = (mv[k + H] / mv[k] - 1) * 100;
+      res[bucket(sumOk(ck))].push(r); res.all.push(r);
+    }
+    const p = document.getElementById('v-hist'); p.replaceChildren();
+    const desc = (arr) => arr.length ? Math.round(arr.filter((r) => r > 0).length / arr.length * 100) + '% of the time, median ' + pct(d3.median(arr)) + ' (' + arr.length + ' weeks)' : 'no such weeks';
+    if (res.all.length >= 52) {
+      const t = (s2) => p.appendChild(document.createTextNode(s2)), b = (s2) => el('b', null, s2, p);
+      const my = bucket(s);
+      t('Historical check since ' + d3.utcFormat('%Y')(weekDate(first)) + ': 26 weeks later the index was higher ');
+      b(desc(res[my])); t(' after weeks with a ' + (my === 'hi' ? 'score of 5–6, like now' : my === 'lo' ? 'score of 0–2, like now' : 'score of 2.5–4.5, like now') + '. ');
+      if (my !== 'hi') { t('After a score of 5–6: '); b(desc(res.hi)); t('. '); }
+      if (my !== 'lo') { t('After a score of 0–2: '); b(desc(res.lo)); t('. '); }
+      t('All weeks: '); b(desc(res.all)); t('. ');
+      if (res.hi.length && res.lo.length && d3.median(res.hi) <= d3.median(res.lo)) t('In this period a high score did not give better 26-week returns than a low one, because the market often recovered quickly after sharp drops. Trend signals have mainly paid off by keeping investors out of long bear markets, and there are few of those in this window. ');
+      t('The periods overlap, so treat this as a rough guide.');
+    }
+  }
+
+  function smallChart(holder, rows, o) {
+    holder.replaceChildren();
+    if (!rows.length) return;
+    const W = Math.max(300, holder.clientWidth), H = 220, mt = 10, mb = 24;
+    const svg = d3.select(holder).append('svg').attr('width', '100%').attr('height', H).attr('viewBox', `0 0 ${W} ${H}`);
+    const y = d3.scaleLinear(o.domain || d3.extent(rows.flatMap((r) => r.ma == null ? [r.v] : [r.v, r.ma])), [H - mb, mt]).nice();
+    const yt = y.ticks(5), last = rows[rows.length - 1];
+    const left = measure(svg, yt.map(o.fmt)) + 8, right = measure(svg, [o.fmt(last.v)]) + 14;
+    const x = d3.scaleUtc(d3.extent(rows, (r) => r.date), [left, W - right]);
+    svg.append('g').selectAll('line').data(yt).join('line').attr('x1', left).attr('x2', W - right).attr('y1', y).attr('y2', y).attr('stroke', 'var(--border)');
+    svg.append('g').selectAll('text').data(yt).join('text').attr('class', 'tick').attr('x', left - 6).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text(o.fmt);
+    (o.refs || []).forEach((rv) => svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(rv)).attr('y2', y(rv)).attr('stroke', 'var(--muted2)').attr('stroke-dasharray', '4 3'));
+    const span = (last.date - rows[0].date) / (365.25 * 864e5);
+    svg.append('g').selectAll('text').data(x.ticks(span <= 2.5 ? (W < 560 ? 3 : 5) : (W < 560 ? 4 : 7))).join('text').attr('class', 'tick').attr('x', x).attr('y', H - 6).attr('text-anchor', 'middle')
+      .text(span <= 2.5 ? d3.utcFormat('%b %Y') : d3.utcFormat('%Y'));
+    if (rows.some((r) => r.ma != null)) svg.append('path').datum(rows).attr('d', d3.line().defined((r) => r.ma != null).x((r) => x(r.date)).y((r) => y(r.ma))).attr('fill', 'none').attr('stroke', 'var(--ma)').attr('stroke-width', 1.6);
+    svg.append('path').datum(rows).attr('d', d3.line().x((r) => x(r.date)).y((r) => y(r.v))).attr('fill', 'none').attr('stroke', o.color).attr('stroke-width', 1.6).attr('stroke-linejoin', 'round');
+    svg.append('circle').attr('cx', x(last.date)).attr('cy', y(last.v)).attr('r', 3.5).attr('fill', o.color);
+    svg.append('text').attr('class', 'tick').attr('x', x(last.date) + 6).attr('y', y(last.v)).attr('dy', '0.32em').attr('fill', 'var(--white)').text(o.fmt(last.v));
+    const tip = el('div', 'tip', null, holder); tip.hidden = true;
+    const hover = svg.append('g').style('display', 'none');
+    const rule = hover.append('line').attr('y1', mt).attr('y2', H - mb).attr('stroke', 'var(--ref)');
+    const dot = hover.append('circle').attr('r', 3.5).attr('fill', o.color);
+    const bis = d3.bisector((r) => r.date).center;
+    svg.append('rect').attr('x', left).attr('y', mt).attr('width', Math.max(0, W - right - left)).attr('height', H - mt - mb).attr('fill', 'transparent')
+      .on('pointermove', (e) => {
+        const [px] = d3.pointer(e, svg.node()); const r = rows[bis(rows, x.invert(px))]; if (!r) return;
+        hover.style('display', null); rule.attr('x1', x(r.date)).attr('x2', x(r.date)); dot.attr('cx', x(r.date)).attr('cy', y(r.v));
+        tip.replaceChildren(); el('div', 'dim', 'Week of ' + fday(r.date), tip); el('div', null, o.name + ' ' + o.fmt(r.v), tip);
+        if (r.ma != null) el('div', 'dim', 'MA40 ' + o.fmt(r.ma), tip);
+        tip.hidden = false;
+        const er = holder.getBoundingClientRect(), sr = svg.node().getBoundingClientRect(), sc = sr.width / W;
+        const px2 = x(r.date) * sc + sr.left - er.left;
+        let lft = px2 + 12; if (lft + tip.offsetWidth > holder.clientWidth) lft = px2 - tip.offsetWidth - 12;
+        tip.style.left = Math.max(0, lft) + 'px'; tip.style.top = '8px';
+      })
+      .on('pointerleave', () => { hover.style('display', 'none'); tip.hidden = true; });
+  }
+
+  function drawBreadth() {
+    const N = DATA.weeks.count, K = N - 1;
+    document.getElementById('b-n').textContent = B.n;
+    const set = (id, v, sub, cls) => { const e = document.getElementById(id); e.textContent = v; e.className = 'kpi-val' + (cls ? ' ' + cls : ''); document.getElementById(id + '-sub').textContent = sub; };
+    const p = B.pct[K], p4 = B.pct[K - 4];
+    set('b-pct', p == null ? '–' : Math.round(p) + '%', p == null ? '' : (p >= 60 ? 'Broad' : p >= 40 ? 'Neutral' : 'Narrow') + (p4 != null ? ' · ' + (p - p4 >= 0 ? '+' : '') + Math.round(p - p4) + ' pts in 4 weeks' : ''), p == null ? '' : p >= 60 ? 'up' : p >= 40 ? 'warn' : 'down');
+    const adUp = B.ad[K] != null && B.adma[K] != null && B.ad[K] >= B.adma[K];
+    set('b-ad', B.adma[K] == null ? '–' : adUp ? '▲ Rising' : '▼ Falling', B.adma[K] == null ? '' : (adUp ? 'Above' : 'Below') + ' its 40-week average', adUp ? 'up' : 'down');
+    const hi = B.highs[K], lo = B.lows[K];
+    set('b-hl', hi == null ? '–' : hi + ' / ' + lo, 'Stocks at a new 52-week high / low this week', hi == null ? '' : hi > lo ? 'up' : hi < lo ? 'down' : '');
+    const th = B.thrusts[B.thrusts.length - 1];
+    set('b-th', th == null ? 'None' : d3.utcFormat('%b %Y')(weekDate(th)), th == null ? 'No thrust in the data' : (K - th <= 26 ? 'Recent, historically a strong start signal' : Math.round((K - th) / 52 * 10) / 10 + ' years ago') + ' · ' + B.thrusts.length + ' since 2006', th != null && K - th <= 26 ? 'up' : '');
+    const rowsOf = (vals, mas) => { let r = vals.map((v, k) => ({ k, date: weekDate(k), v, ma: mas ? mas[k] : null })).filter((r2) => r2.v != null); if (BWEEKS) r = r.slice(-BWEEKS); return r; };
+    smallChart(document.getElementById('c-pct'), rowsOf(B.pct), { domain: [0, 100], fmt: (v) => d3.format('.0f')(v) + '%', refs: [40, 60], color: 'var(--teal)', name: 'Above MA40' });
+    smallChart(document.getElementById('c-ad'), rowsOf(B.ad, B.adma), { fmt: d3.format(',.0f'), color: 'var(--line)', name: 'A/D line' });
   }
 
   function wireSeg(id, fn) {
@@ -478,7 +726,13 @@
     .then((d) => {
       DATA = d;
       document.getElementById('updated').textContent = 'Data through ' + d.data_through;
-      computeAll(); drawSegments(); drawSummary(); drawSectors();
+      computeAll(); B = computeBreadth();
+      try { drawVerdict(); } catch (err) { document.getElementById('verdict').hidden = true; console.error(err); }
+      drawSegments(); drawBreadth(); drawSummary(); drawSectors();
+      document.querySelectorAll('#brange-seg button').forEach((btn) => btn.addEventListener('click', () => {
+        document.querySelectorAll('#brange-seg button').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
+        BWEEKS = Number(btn.dataset.weeks); drawBreadth();
+      }));
       wireSeg('range-seg', (b) => { WEEKS = Number(b.dataset.weeks); });
       wireSeg('scale-seg', (b) => { SCALE = b.dataset.scale; });
       ['segrange-seg', 'segma-seg'].forEach((id) => document.querySelectorAll('#' + id + ' button').forEach((btn) => btn.addEventListener('click', () => {
@@ -486,7 +740,7 @@
         if (id === 'segrange-seg') SEGWEEKS = Number(btn.dataset.weeks); else SEGMA = btn.dataset.ma === '1';
         drawSegments();
       })));
-      let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawCharts(); drawSegments(); }, 150); });
+      let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawCharts(); drawSegments(); drawBreadth(); }, 150); });
     })
     .catch((e) => {
       document.getElementById('updated').textContent = 'Could not load data';
