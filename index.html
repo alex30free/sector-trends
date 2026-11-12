@@ -76,6 +76,10 @@
     footer { border-top: 1px solid var(--border); padding-top: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .err { color: var(--down); font-family: 'IBM Plex Mono', monospace; }
     .warn { color: var(--ma); }
+    .top-right { display: inline-flex; align-items: center; gap: 12px; }
+    .lang-btn { background: none; border: 1px solid var(--border2); border-radius: 3px; padding: 3px; cursor: pointer; line-height: 0; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 23px; }
+    .lang-btn:hover { border-color: var(--muted2); }
+    .lang-btn svg { display: block; border-radius: 1px; }
     /* bull-trend check */
     #verdict { border-left: 3px solid var(--border2); }
     #verdict.v-up { border-left-color: var(--up); } #verdict.v-warn { border-left-color: var(--ma); } #verdict.v-down { border-left-color: var(--down); }
@@ -102,7 +106,7 @@
   <div class="top">
     <a href="https://alex30free.github.io/stocklab/">← StockLab</a>
     <span class="tag">Sector Trends · Sweden</span>
-    <span id="updated">Loading…</span>
+    <span class="top-right"><span id="updated">Loading…</span><button type="button" id="lang-btn" class="lang-btn"></button></span>
   </div>
 
   <header>
@@ -253,10 +257,21 @@
   let DATA = null, WEEKS = 0, SCALE = 'lin', SEGWEEKS = 0, SEGMA = false;
   const SEGCOL = { large: '#0099ff', mid: '#cc44ff', small: '#ff7a59', all: '#e8eef4' };
   let BWEEKS = 260, B = null;
-  const f1 = d3.format('.1f');
+  let LANG = 'en';
+  const T = (en, sv) => LANG === 'sv' ? sv : en;
+  const SVNUM = d3.formatLocale({ decimal: ',', thousands: '\u00a0', grouping: [3], currency: ['', ' kr'], minus: '\u2212' });
+  const SVTIME = d3.timeFormatLocale({ dateTime: '%A %e %B %Y %X', date: '%Y-%m-%d', time: '%H:%M:%S', periods: ['fm', 'em'],
+    days: ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag'], shortDays: ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'],
+    months: ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'],
+    shortMonths: ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'] });
+  const nf = (spec) => (LANG === 'sv' ? SVNUM : d3).format(spec);
+  const uf = (spec) => (LANG === 'sv' ? SVTIME : d3).utcFormat(spec);
+  const SECSV = { bank: 'Banker', gaming: 'Spel', telecom: 'Telekomoperatörer', construction: 'Bygg', realestate: 'Fastigheter',
+    staples: 'Dagligvaror', forest: 'Skog', durables: 'Sällanköpsvaror', materials: 'Råvaror', industry: 'Industri' };
+  const f1 = (v) => nf('.1f')(v);
   const pct = (v) => v == null ? '–' : (v >= 0 ? '+' : '') + f1(v) + '%';
-  const fday = d3.utcFormat('%-d %b %Y');
-  const fidx = (v) => v == null ? '–' : (v >= 1000 ? d3.format(',.0f')(v) : f1(v));
+  const fday = (d) => uf('%-d %b %Y')(d);
+  const fidx = (v) => v == null ? '–' : (v >= 1000 ? nf(',.0f')(v) : f1(v));
 
   function weekDate(k) {
     const [y, m, d] = DATA.weeks.start.split('-').map(Number);
@@ -264,7 +279,7 @@
     const thru = DATA.data_through ? new Date(DATA.data_through + 'T00:00:00Z') : null;
     return thru && dt > thru ? thru : dt;   // the current week is labelled with the latest data day
   }
-  const andList = (arr) => arr.length <= 1 ? arr.join('') : arr.slice(0, -1).join(', ') + ' and ' + arr[arr.length - 1];
+  const andList = (arr) => arr.length <= 1 ? arr.join('') : arr.slice(0, -1).join(', ') + T(' and ', ' och ') + arr[arr.length - 1];
   // series with MA40 and trend facts
   function analyse(values) {
     const rows = values.map((v, k) => {
@@ -301,14 +316,14 @@
     const best = sorted[0], worst = sorted[sorted.length - 1];
     const stocks = Object.entries(A.stk).filter(([, a]) => a.diff != null);
     const sUp = stocks.filter(([, a]) => a.above).length;
-    document.getElementById('k-up').textContent = up.length + ' of ' + secs.length;
-    document.getElementById('k-up-sub').textContent = down.length ? down.length + ' in downtrend' : 'none in downtrend';
-    document.getElementById('k-stocks').textContent = sUp + ' of ' + stocks.length;
-    document.getElementById('k-stocks-sub').textContent = Math.round(sUp / stocks.length * 100) + '% of all stocks';
+    document.getElementById('k-up').textContent = up.length + T(' of ', ' av ') + secs.length;
+    document.getElementById('k-up-sub').textContent = down.length ? down.length + T(' in downtrend', ' i nedtrend') : T('none in downtrend', 'ingen i nedtrend');
+    document.getElementById('k-stocks').textContent = sUp + T(' of ', ' av ') + stocks.length;
+    document.getElementById('k-stocks-sub').textContent = Math.round(sUp / stocks.length * 100) + T('% of all stocks', ' % av alla aktier');
     document.getElementById('k-best').textContent = best.name;
-    document.getElementById('k-best-sub').textContent = pct(A.sec[best.id].diff) + ' vs MA40 · 52w ' + pct(A.sec[best.id].ch52);
+    document.getElementById('k-best-sub').textContent = pct(A.sec[best.id].diff) + T(' vs MA40 · 52w ', ' mot MA40 · 52 v ') + pct(A.sec[best.id].ch52);
     document.getElementById('k-worst').textContent = worst.name;
-    document.getElementById('k-worst-sub').textContent = pct(A.sec[worst.id].diff) + ' vs MA40 · 52w ' + pct(A.sec[worst.id].ch52);
+    document.getElementById('k-worst-sub').textContent = pct(A.sec[worst.id].diff) + T(' vs MA40 · 52w ', ' mot MA40 · 52 v ') + pct(A.sec[worst.id].ch52);
 
     // summary sentence(s), built from the data
     const p = document.getElementById('summary-text'); p.replaceChildren();
@@ -316,28 +331,28 @@
     const b = (s, cls) => el('b', cls || null, s, p);
     const list = (arr) => arr.map((s) => s.name).join(', ');
     const breadth = up.length / secs.length;
-    t('Overall the market looks '); b(breadth >= 0.7 ? 'broadly strong' : breadth >= 0.5 ? 'mixed, leaning positive' : breadth >= 0.3 ? 'mixed, leaning weak' : 'broadly weak', breadth >= 0.5 ? 'up' : 'down');
-    t(': '); b(up.length + ' of ' + secs.length); t(' sectors trade above their 40-week moving average');
+    t(T('Overall the market looks ', 'Överlag ser marknaden ')); b(breadth >= 0.7 ? T('broadly strong', 'brett stark') : breadth >= 0.5 ? T('mixed, leaning positive', 'blandad, med positiv lutning') : breadth >= 0.3 ? T('mixed, leaning weak', 'blandad, med svag lutning') : T('broadly weak', 'brett svag'), breadth >= 0.5 ? 'up' : 'down');
+    t(T(': ', ' ut: ')); b(up.length + T(' of ', ' av ') + secs.length); t(T(' sectors trade above their 40-week moving average', ' sektorer handlas över sitt 40-veckors glidande medelvärde'));
     if (up.length) { t(' ('); t(list(up)); t(')'); }
     t('. ');
-    if (down.length) { t('In downtrend: '); b(list(down), 'down'); t('. '); }
-    t('Strongest relative to its trend is '); b(best.name, 'up'); t(' (' + pct(A.sec[best.id].diff) + '), weakest is '); b(worst.name, 'down'); t(' (' + pct(A.sec[worst.id].diff) + '). ');
+    if (down.length) { t(T('In downtrend: ', 'I nedtrend: ')); b(list(down), 'down'); t('. '); }
+    t(T('Strongest relative to its trend is ', 'Starkast i förhållande till sin trend är ')); b(best.name, 'up'); t(' (' + pct(A.sec[best.id].diff) + T('), weakest is ', '), svagast är ')); b(worst.name, 'down'); t(' (' + pct(A.sec[worst.id].diff) + '). ');
     const recent = secs.filter((s) => A.sec[s.id].crossedWeeksAgo <= 4).sort((a, b2) => A.sec[a.id].crossedWeeksAgo - A.sec[b2.id].crossedWeeksAgo);
     if (recent.length) {
-      t('Recent trend changes (last 4 weeks): ');
-      recent.forEach((s, i) => { if (i) t(', '); b(s.name, A.sec[s.id].above ? 'up' : 'down'); t(A.sec[s.id].above ? ' turned up' : ' turned down'); t(' (' + fday(A.sec[s.id].since) + ')'); });
+      t(T('Recent trend changes (last 4 weeks): ', 'Nya trendbrott (senaste 4 veckorna): '));
+      recent.forEach((s, i) => { if (i) t(', '); b(s.name, A.sec[s.id].above ? 'up' : 'down'); t(A.sec[s.id].above ? T(' turned up', ' vände upp') : T(' turned down', ' vände ned')); t(' (' + fday(A.sec[s.id].since) + ')'); });
       t('. ');
-    } else t('No sector has crossed its MA40 in the last 4 weeks. ');
-    t('Across all ' + stocks.length + ' stocks, '); b(sUp + ' (' + Math.round(sUp / stocks.length * 100) + '%)'); t(' are above their own MA40.');
+    } else t(T('No sector has crossed its MA40 in the last 4 weeks. ', 'Ingen sektor har korsat sitt MA40 de senaste 4 veckorna. '));
+    t(T('Across all ' + stocks.length + ' stocks, ', 'Av alla ' + stocks.length + ' aktier ligger ')); b(sUp + ' (' + Math.round(sUp / stocks.length * 100) + '%)'); t(T(' are above their own MA40.', ' över sitt eget MA40.'));
     const ss = segmentSentence();
     if (ss) {
-      t(' By company size, over the last 52 weeks ');
-      ss.best.forEach((x, i) => { if (i) t(i === ss.best.length - 1 ? ' and ' : ', '); b(x.g.name, x.a.ch52 >= 0 ? 'up' : 'down'); t(' ' + pct(x.a.ch52)); });
+      t(T(' By company size, over the last 52 weeks ', ' Efter bolagsstorlek, de senaste 52 veckorna: '));
+      ss.best.forEach((x, i) => { if (i) t(i === ss.best.length - 1 ? T(' and ', ' och ') : ', '); b(x.g.name, x.a.ch52 >= 0 ? 'up' : 'down'); t(' ' + pct(x.a.ch52)); });
       t('; ');
-      if (ss.up.length) { b(andList(ss.up), 'up'); t(ss.up.length > 1 ? ' are' : ' is'); t(' above'); }
-      if (ss.up.length && ss.down.length) t(' and ');
-      if (ss.down.length) { b(andList(ss.down), 'down'); t(ss.down.length > 1 ? ' are' : ' is'); t(' below'); }
-      t(' the 40-week average.');
+      if (ss.up.length) { b(andList(ss.up), 'up'); t(LANG === 'sv' ? ' ligger över' : (ss.up.length > 1 ? ' are' : ' is') + ' above'); }
+      if (ss.up.length && ss.down.length) t(T(' and ', ' och '));
+      if (ss.down.length) { b(andList(ss.down), 'down'); t(LANG === 'sv' ? ' ligger under' : (ss.down.length > 1 ? ' are' : ' is') + ' below'); }
+      t(T(' the 40-week average.', ' 40-veckorssnittet.'));
     }
 
     // table
@@ -347,7 +362,7 @@
       const a = A.sec[s.id], tr = el('tr', null, null, tb);
       tr.addEventListener('click', () => document.getElementById('sec-' + s.id).scrollIntoView({ behavior: 'smooth', block: 'start' }));
       el('td', null, s.name, tr);
-      el('td', a.above ? 'up' : 'down', a.above ? '▲ Up' : '▼ Down', tr);
+      el('td', a.above ? 'up' : 'down', a.above ? T('▲ Up', '▲ Upp') : T('▼ Down', '▼ Ned'), tr);
       el('td', a.above ? 'up' : 'down', pct(a.diff), tr);
       const tdb = el('td', null, null, tr); const bar = el('span', 'bar', null, tdb);
       bar.style.width = Math.max(2, Math.abs(a.diff) / maxAbs * 80) + 'px'; bar.style.background = a.above ? 'var(--up)' : 'var(--down)';
@@ -367,10 +382,10 @@
       const head = el('div', 'sec-head', null, card);
       const left = el('div', null, null, head);
       el('h2', null, s.name, left);
-      el('div', 'sec-members', s.members.map((m) => DATA.stocks[m] ? DATA.stocks[m].name : m).join(', ') + (s.missing && s.missing.length ? ' · missing data: ' + s.missing.join(', ') : ''), left);
-      if (a.diff != null) el('span', 'badge ' + (a.above ? 'up' : 'down'), a.above ? '▲ ABOVE MA40 · UPTREND' : '▼ BELOW MA40 · DOWNTREND', head);
+      el('div', 'sec-members', s.members.map((m) => DATA.stocks[m] ? DATA.stocks[m].name : m).join(', ') + (s.missing && s.missing.length ? T(' · missing data: ', ' · data saknas: ') + s.missing.join(', ') : ''), left);
+      if (a.diff != null) el('span', 'badge ' + (a.above ? 'up' : 'down'), a.above ? T('▲ ABOVE MA40 · UPTREND', '▲ ÖVER MA40 · UPPTREND') : T('▼ BELOW MA40 · DOWNTREND', '▼ UNDER MA40 · NEDTREND'), head);
       const st = el('div', 'sec-stats', null, card);
-      [['Index', fidx(a.last && a.last.v)], ['MA40', fidx(a.last && a.last.ma)], ['vs MA40', pct(a.diff)], [a.above ? 'Above since' : 'Below since', a.since ? fday(a.since) : '–'], ['52 weeks', pct(a.ch52)]]
+      [['Index', fidx(a.last && a.last.v)], ['MA40', fidx(a.last && a.last.ma)], [T('vs MA40', 'mot MA40'), pct(a.diff)], [a.above ? T('Above since', 'Över sedan') : T('Below since', 'Under sedan'), a.since ? fday(a.since) : '–'], [T('52 weeks', '52 veckor'), pct(a.ch52)]]
         .forEach(([l, v], i) => { const d = el('div', null, null, st); el('span', 'lbl', l, d); const vv = el('span', 'val', v, d); if (i === 2 || i === 4) vv.className = 'val ' + ((i === 2 ? a.diff : a.ch52) >= 0 ? 'up' : 'down'); });
       const ch = el('div', 'chart', null, card); ch.dataset.sid = s.id;
       const chips = el('div', 'chips', null, card);
@@ -379,7 +394,7 @@
         const c = el('span', 'chip ' + (sa.above ? 'up' : 'down'), null, chips);
         el('span', 'n', DATA.stocks[m].name, c);
         c.appendChild(document.createTextNode((sa.above ? '▲ ' : '▼ ') + pct(sa.diff)));
-        c.title = DATA.stocks[m].name + ': ' + (sa.above ? 'above' : 'below') + ' its own MA40 since ' + fday(sa.since);
+        c.title = DATA.stocks[m].name + ': ' + (sa.above ? T('above', 'över') : T('below', 'under')) + T(' its own MA40 since ', ' sitt eget MA40 sedan ') + fday(sa.since);
       });
     });
     drawCharts();
@@ -410,7 +425,7 @@
       svg.append('g').selectAll('text').data(yt).join('text').attr('class', 'tick').attr('x', left - 6).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text(fidx);
       const span = (last.date - rows[0].date) / (365.25 * 864e5);
       svg.append('g').selectAll('text').data(x.ticks(span <= 2.5 ? (W < 560 ? 3 : 5) : (W < 560 ? 4 : 7))).join('text').attr('class', 'tick').attr('x', x).attr('y', H - 6).attr('text-anchor', 'middle')
-        .text(span <= 2.5 ? d3.utcFormat('%b %Y') : d3.utcFormat('%Y'));
+        .text(span <= 2.5 ? uf('%b %Y') : uf('%Y'));
       svg.append('path').datum(rows).attr('d', d3.line().defined((r) => r.ma != null).x((r) => x(r.date)).y((r) => y(r.ma)))
         .attr('fill', 'none').attr('stroke', 'var(--ma)').attr('stroke-width', 1.8);
       svg.append('path').datum(rows).attr('d', d3.line().x((r) => x(r.date)).y((r) => y(r.v)))
@@ -428,9 +443,9 @@
           const [px] = d3.pointer(e, svg.node()); const r = rows[bis(rows, x.invert(px))]; if (!r) return;
           hover.style('display', null); rule.attr('x1', x(r.date)).attr('x2', x(r.date)); dot.attr('cx', x(r.date)).attr('cy', y(r.v));
           tip.replaceChildren();
-          el('div', 'dim', s.name + ' · week of ' + fday(r.date), tip);
+          el('div', 'dim', s.name + T(' · week of ', ' · vecka ') + fday(r.date), tip);
           el('div', null, 'Index ' + fidx(r.v), tip);
-          if (r.ma != null) { el('div', null, 'MA40  ' + fidx(r.ma), tip); el('div', 'dim', (r.v >= r.ma ? 'Above by ' : 'Below by ') + f1(Math.abs(r.v / r.ma - 1) * 100) + '%', tip); }
+          if (r.ma != null) { el('div', null, 'MA40  ' + fidx(r.ma), tip); el('div', 'dim', (r.v >= r.ma ? T('Above by ', 'Över med ') : T('Below by ', 'Under med ')) + f1(Math.abs(r.v / r.ma - 1) * 100) + '%', tip); }
           tip.hidden = false;
           const er = holder.getBoundingClientRect(), sr = svg.node().getBoundingClientRect(), sc = sr.width / W;
           const px2 = x(r.date) * sc + sr.left - er.left, py2 = y(r.v) * sc + sr.top - er.top;
@@ -454,7 +469,7 @@
       const base = rows[0].v;
       return { g, a, base, rows: rows.map((r) => ({ date: r.date, v: r.v / base * 100, ma: r.ma == null ? null : r.ma / base * 100, raw: r.v })) };
     });
-    const label = SEGWEEKS ? ({ 52: '1 year', 156: '3 years', 260: '5 years' })[SEGWEEKS] : 'Since ' + d3.utcFormat('%b %Y')(weekDate(firstK));
+    const label = SEGWEEKS ? ({ 52: T('1 year', '1 år'), 156: T('3 years', '3 år'), 260: T('5 years', '5 år') })[SEGWEEKS] : T('Since ', 'Sedan ') + uf('%b %Y')(weekDate(firstK));
     document.getElementById('seg-period-h').textContent = label;
 
     // legend
@@ -473,10 +488,10 @@
     const left = measure(svg, yt.map((v) => d3.format('.0f')(v))) + 8, right = measure(svg, ends.map(endTxt)) + 16;
     const x = d3.scaleUtc(d3.extent(series[0].rows, (r) => r.date), [left, W - right]);
     svg.append('g').selectAll('line').data(yt).join('line').attr('x1', left).attr('x2', W - right).attr('y1', y).attr('y2', y).attr('stroke', (v) => v === 100 ? 'var(--muted)' : 'var(--border)');
-    svg.append('g').selectAll('text').data(yt).join('text').attr('class', 'tick').attr('x', left - 6).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text((v) => d3.format('.0f')(v));
+    svg.append('g').selectAll('text').data(yt).join('text').attr('class', 'tick').attr('x', left - 6).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text((v) => nf('.0f')(v));
     const span = (series[0].rows[series[0].rows.length - 1].date - series[0].rows[0].date) / (365.25 * 864e5);
     svg.append('g').selectAll('text').data(x.ticks(span <= 2.5 ? (W < 560 ? 3 : 6) : (W < 560 ? 4 : 8))).join('text').attr('class', 'tick').attr('x', x).attr('y', H - 6).attr('text-anchor', 'middle')
-      .text(span <= 2.5 ? d3.utcFormat('%b %Y') : d3.utcFormat('%Y'));
+      .text(span <= 2.5 ? uf('%b %Y') : uf('%Y'));
     series.forEach((s) => {
       if (SEGMA) svg.append('path').datum(s.rows).attr('d', d3.line().defined((r) => r.ma != null).x((r) => x(r.date)).y((r) => y(r.ma)))
         .attr('fill', 'none').attr('stroke', SEGCOL[s.g.id]).attr('stroke-width', 1.2).attr('stroke-dasharray', '4 3').attr('opacity', 0.8);
@@ -500,7 +515,7 @@
       .on('pointermove', (e) => {
         const [px] = d3.pointer(e, svg.node()); const i = bis(series[0].rows, x.invert(px)); const d0 = series[0].rows[i]; if (!d0) return;
         hover.style('display', null); rule.attr('x1', x(d0.date)).attr('x2', x(d0.date));
-        tip.replaceChildren(); el('div', 'dim', 'Week of ' + fday(d0.date), tip);
+        tip.replaceChildren(); el('div', 'dim', T('Week of ', 'Vecka ') + fday(d0.date), tip);
         series.forEach((s, j) => { const r = s.rows[i]; if (!r) return; dots[j].attr('cx', x(r.date)).attr('cy', y(r.v));
           const line = el('div', null, s.g.name + '  ' + f1(r.v) + '  (' + pct(r.v - 100) + ')', tip); line.style.color = SEGCOL[s.g.id]; });
         tip.hidden = false;
@@ -519,7 +534,7 @@
       const chg = last.v - 100; el('td', chg >= 0 ? 'up' : 'down', pct(chg), tr);
       el('td', a.ch4 >= 0 ? 'up' : 'down', pct(a.ch4), tr);
       el('td', a.ch52 >= 0 ? 'up' : 'down', pct(a.ch52), tr);
-      el('td', a.above ? 'up' : 'down', a.diff == null ? '–' : (a.above ? '▲ Up' : '▼ Down'), tr);
+      el('td', a.above ? 'up' : 'down', a.diff == null ? '–' : (a.above ? T('▲ Up', '▲ Upp') : T('▼ Down', '▼ Ned')), tr);
       el('td', a.above ? 'up' : 'down', pct(a.diff), tr);
       el('td', null, a.since ? fday(a.since) : '–', tr);
     });
@@ -585,36 +600,36 @@
     const a = w.slice(0, 13), b = w.slice(13);
     const p = B.pct[k];
     return [
-      { id: 'ma', ok: mv[k] >= mma[k] ? 1 : 0, val: pct((mv[k] / mma[k] - 1) * 100) + ' vs MA40',
-        what: 'Index above its 40-week average', why: 'Point 1: the classic trend filter' },
-      { id: 'slope', ok: mma[k] > mma[k - 4] ? 1 : 0, val: pct((mma[k] / mma[k - 4] - 1) * 100) + ' in 4 w',
-        what: 'The 40-week average is rising', why: 'Point 1: the trend itself points up' },
-      { id: 'mom', ok: mv[k] > mv[k - 52] ? 1 : 0, val: pct((mv[k] / mv[k - 52] - 1) * 100) + ' in 52 w',
-        what: 'Higher than a year ago', why: 'Point 2: 12-month momentum' },
+      { id: 'ma', ok: mv[k] >= mma[k] ? 1 : 0, val: pct((mv[k] / mma[k] - 1) * 100) + T(' vs MA40', ' mot MA40'),
+        what: T('Index above its 40-week average', 'Index över sitt 40-veckorssnitt'), why: T('Point 1: the classic trend filter', 'Punkt 1: det klassiska trendfiltret') },
+      { id: 'slope', ok: mma[k] > mma[k - 4] ? 1 : 0, val: pct((mma[k] / mma[k - 4] - 1) * 100) + T(' in 4 w', ' på 4 v'),
+        what: T('The 40-week average is rising', '40-veckorssnittet stiger'), why: T('Point 1: the trend itself points up', 'Punkt 1: trenden själv pekar uppåt') },
+      { id: 'mom', ok: mv[k] > mv[k - 52] ? 1 : 0, val: pct((mv[k] / mv[k - 52] - 1) * 100) + T(' in 52 w', ' på 52 v'),
+        what: T('Higher than a year ago', 'Högre än för ett år sedan'), why: T('Point 2: 12-month momentum', 'Punkt 2: 12-månaders momentum') },
       { id: 'hhhl', ok: (Math.max(...b) > Math.max(...a) && Math.min(...b) > Math.min(...a)) ? 1 : 0,
-        val: (Math.max(...b) > Math.max(...a) ? 'higher high' : 'lower high') + ' · ' + (Math.min(...b) > Math.min(...a) ? 'higher low' : 'lower low'),
-        what: 'Higher highs and higher lows', why: 'Point 3: last 13 weeks vs the 13 before' },
-      { id: 'pct', ok: p >= 60 ? 1 : p >= 40 ? 0.5 : 0, val: Math.round(p) + '% of stocks',
-        what: 'Most stocks above their own MA40', why: 'Point 4: breadth, ≥ 60% is broad, < 40% is narrow' },
-      { id: 'ad', ok: B.ad[k] >= B.adma[k] ? 1 : 0, val: B.ad[k] >= B.adma[k] ? 'above its MA40' : 'below its MA40',
-        what: 'Advance/decline line rising', why: 'Point 4: more stocks rising than falling over time' },
+        val: (Math.max(...b) > Math.max(...a) ? T('higher high', 'högre topp') : T('lower high', 'lägre topp')) + ' · ' + (Math.min(...b) > Math.min(...a) ? T('higher low', 'högre botten') : T('lower low', 'lägre botten')),
+        what: T('Higher highs and higher lows', 'Högre toppar och högre bottnar'), why: T('Point 3: last 13 weeks vs the 13 before', 'Punkt 3: senaste 13 veckorna mot de 13 före') },
+      { id: 'pct', ok: p >= 60 ? 1 : p >= 40 ? 0.5 : 0, val: Math.round(p) + T('% of stocks', ' % av aktierna'),
+        what: T('Most stocks above their own MA40', 'De flesta aktier över sitt eget MA40'), why: T('Point 4: breadth, ≥ 60% is broad, < 40% is narrow', 'Punkt 4: bredd, ≥ 60 % är brett, < 40 % är smalt') },
+      { id: 'ad', ok: B.ad[k] >= B.adma[k] ? 1 : 0, val: B.ad[k] >= B.adma[k] ? T('above its MA40', 'över sitt MA40') : T('below its MA40', 'under sitt MA40'),
+        what: T('Advance/decline line rising', 'Advance/decline-linjen stiger'), why: T('Point 4: more stocks rising than falling over time', 'Punkt 4: fler aktier stiger än faller över tid') },
     ];
   }
   const sumOk = (c) => c.reduce((s, x) => s + x.ok, 0);
   function verdictOf(c) {
     const s = sumOk(c), price = c[0].ok + c[1].ok + c[2].ok + c[3].ok, br = c[4].ok + c[5].ok;
-    if (s >= 5 && c[0].ok) return { cls: 'up', label: 'Robust bull trend', text: 'Price trend, momentum and breadth all point the same way. Long-run studies of trend following find this combination to be the most reliable sign of a lasting uptrend, but it still says nothing certain about the next few months.' };
-    if (c[0].ok && price >= 3 && br < 1) return { cls: 'warn', label: 'Bull trend, but narrow', text: 'The index is in an uptrend, but few stocks take part. Rises carried by a handful of large companies have historically been more fragile.' };
-    if (s >= 3.5) return { cls: 'warn', label: 'Mixed, leaning positive', text: 'More signals are positive than negative, but they do not agree. The trend is not confirmed. Signals often flip in this zone.' };
-    if (s >= 2) return { cls: 'down', label: 'Weak, no bull trend', text: 'Most signals are negative. A few positive ones can be the start of a turn, but nothing is confirmed yet.' };
-    return { cls: 'down', label: 'Downtrend', text: 'Price trend, momentum and breadth are all negative. This is the opposite of a bull trend.' };
+    if (s >= 5 && c[0].ok) return { cls: 'up', label: T('Robust bull trend', 'Robust bulltrend'), text: T('Price trend, momentum and breadth all point the same way. Long-run studies of trend following find this combination to be the most reliable sign of a lasting uptrend, but it still says nothing certain about the next few months.', 'Pristrend, momentum och bredd pekar åt samma håll. Långa studier av trendföljning visar att den här kombinationen är det mest tillförlitliga tecknet på en varaktig upptrend, men den säger fortfarande inget säkert om de närmaste månaderna.') };
+    if (c[0].ok && price >= 3 && br < 1) return { cls: 'warn', label: T('Bull trend, but narrow', 'Bulltrend, men smal'), text: T('The index is in an uptrend, but few stocks take part. Rises carried by a handful of large companies have historically been more fragile.', 'Indexet är i upptrend, men få aktier är med. Uppgångar som bärs av ett fåtal storbolag har historiskt varit mer sköra.') };
+    if (s >= 3.5) return { cls: 'warn', label: T('Mixed, leaning positive', 'Blandad, med positiv lutning'), text: T('More signals are positive than negative, but they do not agree. The trend is not confirmed. Signals often flip in this zone.', 'Fler signaler är positiva än negativa, men de är inte överens. Trenden är inte bekräftad. I det här läget slår signalerna ofta om.') };
+    if (s >= 2) return { cls: 'down', label: T('Weak, no bull trend', 'Svag, ingen bulltrend'), text: T('Most signals are negative. A few positive ones can be the start of a turn, but nothing is confirmed yet.', 'De flesta signaler är negativa. Några positiva kan vara början på en vändning, men inget är bekräftat än.') };
+    return { cls: 'down', label: T('Downtrend', 'Nedtrend'), text: T('Price trend, momentum and breadth are all negative. This is the opposite of a bull trend.', 'Pristrend, momentum och bredd är alla negativa. Det är motsatsen till en bulltrend.') };
   }
 
   function drawVerdict() {
     const card = document.getElementById('verdict');
     const seg = marketSeg();
     if (!seg) { card.hidden = true; return; }
-    document.getElementById('v-mkt').textContent = seg.id === 'all' ? 'OMX Stockholm All-Share (OMXSPI)' : seg.name + ' (OMXSPI has no data yet)';
+    document.getElementById('v-mkt').textContent = seg.id === 'all' ? 'OMX Stockholm All-Share (OMXSPI)' : seg.name + T(' (OMXSPI has no data yet)', ' (OMXSPI saknar data än)');
     const mv = seg.close, mma = ma40(mv);
     let K = mv.length - 1; while (K > 0 && checksAt(K, mv, mma) == null) K--;
     const c = checksAt(K, mv, mma);
@@ -624,7 +639,7 @@
     const lb = document.getElementById('v-label'); lb.textContent = v.label; lb.className = 'v-label ' + v.cls;
     const m = document.getElementById('v-meter'); m.replaceChildren();
     for (let i = 0; i < 6; i++) { const sp = el('span', null, null, m); const f = Math.max(0, Math.min(1, s - i)); if (f > 0) sp.style.background = f === 1 ? 'var(--' + (v.cls === 'warn' ? 'ma' : v.cls) + ')' : 'linear-gradient(90deg, var(--ma) 50%, var(--border2) 50%)'; }
-    document.getElementById('v-score').textContent = (s % 1 ? s.toFixed(1) : s) + ' of 6 signals · week of ' + fday(weekDate(K));
+    document.getElementById('v-score').textContent = (s % 1 ? f1(s) : s) + T(' of 6 signals · week of ', ' av 6 signaler · vecka ') + fday(weekDate(K));
     document.getElementById('v-text').textContent = v.text;
     const ul = document.getElementById('v-checks'); ul.replaceChildren();
     c.forEach((x) => {
@@ -644,17 +659,18 @@
       res[bucket(sumOk(ck))].push(r); res.all.push(r);
     }
     const p = document.getElementById('v-hist'); p.replaceChildren();
-    const desc = (arr) => arr.length ? Math.round(arr.filter((r) => r > 0).length / arr.length * 100) + '% of the time, median ' + pct(d3.median(arr)) + ' (' + arr.length + ' weeks)' : 'no such weeks';
+    const desc = (arr) => arr.length ? Math.round(arr.filter((r) => r > 0).length / arr.length * 100) + T('% of the time, median ', ' % av gångerna, median ') + pct(d3.median(arr)) + ' (' + arr.length + T(' weeks)', ' veckor)') : T('no such weeks', 'inga sådana veckor');
     if (res.all.length >= 52) {
       const t = (s2) => p.appendChild(document.createTextNode(s2)), b = (s2) => el('b', null, s2, p);
       const my = bucket(s);
-      t('Historical check since ' + d3.utcFormat('%Y')(weekDate(first)) + ': 26 weeks later the index was higher ');
-      b(desc(res[my])); t(' after weeks with a ' + (my === 'hi' ? 'score of 5–6, like now' : my === 'lo' ? 'score of 0–2, like now' : 'score of 2.5–4.5, like now') + '. ');
-      if (my !== 'hi') { t('After a score of 5–6: '); b(desc(res.hi)); t('. '); }
-      if (my !== 'lo') { t('After a score of 0–2: '); b(desc(res.lo)); t('. '); }
-      t('All weeks: '); b(desc(res.all)); t('. ');
-      if (res.hi.length && res.lo.length && d3.median(res.hi) <= d3.median(res.lo)) t('In this period a high score did not give better 26-week returns than a low one, because the market often recovered quickly after sharp drops. Trend signals have mainly paid off by keeping investors out of long bear markets, and there are few of those in this window. ');
-      t('The periods overlap, so treat this as a rough guide.');
+      t(T('Historical check since ', 'Historisk kontroll sedan ') + uf('%Y')(weekDate(first)) + T(': 26 weeks later the index was higher ', ': 26 veckor senare låg indexet högre '));
+      const sc = my === 'hi' ? '5–6' : my === 'lo' ? '0–2' : T('2.5–4.5', '2,5–4,5');
+      b(desc(res[my])); t(T(' after weeks with a score of ' + sc + ', like now. ', ' efter veckor med ' + sc + ' poäng, som nu. '));
+      if (my !== 'hi') { t(T('After a score of 5–6: ', 'Efter 5–6 poäng: ')); b(desc(res.hi)); t('. '); }
+      if (my !== 'lo') { t(T('After a score of 0–2: ', 'Efter 0–2 poäng: ')); b(desc(res.lo)); t('. '); }
+      t(T('All weeks: ', 'Alla veckor: ')); b(desc(res.all)); t('. ');
+      if (res.hi.length && res.lo.length && d3.median(res.hi) <= d3.median(res.lo)) t(T('In this period a high score did not give better 26-week returns than a low one, because the market often recovered quickly after sharp drops. Trend signals have mainly paid off by keeping investors out of long bear markets, and there are few of those in this window. ', 'Under den här perioden gav en hög poäng inte bättre avkastning på 26 veckor än en låg, eftersom börsen ofta återhämtade sig snabbt efter kraftiga ras. Trendsignaler har främst lönat sig genom att hålla investerare borta från långa björnmarknader, och sådana finns det få av i den här perioden. '));
+      t(T('The periods overlap, so treat this as a rough guide.', 'Perioderna överlappar, så se det som en grov vägledning.'));
     }
   }
 
@@ -672,7 +688,7 @@
     (o.refs || []).forEach((rv) => svg.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y(rv)).attr('y2', y(rv)).attr('stroke', 'var(--muted2)').attr('stroke-dasharray', '4 3'));
     const span = (last.date - rows[0].date) / (365.25 * 864e5);
     svg.append('g').selectAll('text').data(x.ticks(span <= 2.5 ? (W < 560 ? 3 : 5) : (W < 560 ? 4 : 7))).join('text').attr('class', 'tick').attr('x', x).attr('y', H - 6).attr('text-anchor', 'middle')
-      .text(span <= 2.5 ? d3.utcFormat('%b %Y') : d3.utcFormat('%Y'));
+      .text(span <= 2.5 ? uf('%b %Y') : uf('%Y'));
     if (rows.some((r) => r.ma != null)) svg.append('path').datum(rows).attr('d', d3.line().defined((r) => r.ma != null).x((r) => x(r.date)).y((r) => y(r.ma))).attr('fill', 'none').attr('stroke', 'var(--ma)').attr('stroke-width', 1.6);
     svg.append('path').datum(rows).attr('d', d3.line().x((r) => x(r.date)).y((r) => y(r.v))).attr('fill', 'none').attr('stroke', o.color).attr('stroke-width', 1.6).attr('stroke-linejoin', 'round');
     svg.append('circle').attr('cx', x(last.date)).attr('cy', y(last.v)).attr('r', 3.5).attr('fill', o.color);
@@ -686,7 +702,7 @@
       .on('pointermove', (e) => {
         const [px] = d3.pointer(e, svg.node()); const r = rows[bis(rows, x.invert(px))]; if (!r) return;
         hover.style('display', null); rule.attr('x1', x(r.date)).attr('x2', x(r.date)); dot.attr('cx', x(r.date)).attr('cy', y(r.v));
-        tip.replaceChildren(); el('div', 'dim', 'Week of ' + fday(r.date), tip); el('div', null, o.name + ' ' + o.fmt(r.v), tip);
+        tip.replaceChildren(); el('div', 'dim', T('Week of ', 'Vecka ') + fday(r.date), tip); el('div', null, o.name + ' ' + o.fmt(r.v), tip);
         if (r.ma != null) el('div', 'dim', 'MA40 ' + o.fmt(r.ma), tip);
         tip.hidden = false;
         const er = holder.getBoundingClientRect(), sr = svg.node().getBoundingClientRect(), sc = sr.width / W;
@@ -702,16 +718,16 @@
     document.getElementById('b-n').textContent = B.n;
     const set = (id, v, sub, cls) => { const e = document.getElementById(id); e.textContent = v; e.className = 'kpi-val' + (cls ? ' ' + cls : ''); document.getElementById(id + '-sub').textContent = sub; };
     const p = B.pct[K], p4 = B.pct[K - 4];
-    set('b-pct', p == null ? '–' : Math.round(p) + '%', p == null ? '' : (p >= 60 ? 'Broad' : p >= 40 ? 'Neutral' : 'Narrow') + (p4 != null ? ' · ' + (p - p4 >= 0 ? '+' : '') + Math.round(p - p4) + ' pts in 4 weeks' : ''), p == null ? '' : p >= 60 ? 'up' : p >= 40 ? 'warn' : 'down');
+    set('b-pct', p == null ? '–' : Math.round(p) + T('%', ' %'), p == null ? '' : (p >= 60 ? T('Broad', 'Brett') : p >= 40 ? 'Neutral' : T('Narrow', 'Smalt')) + (p4 != null ? ' · ' + (p - p4 >= 0 ? '+' : '') + Math.round(p - p4) + T(' pts in 4 weeks', ' p på 4 veckor') : ''), p == null ? '' : p >= 60 ? 'up' : p >= 40 ? 'warn' : 'down');
     const adUp = B.ad[K] != null && B.adma[K] != null && B.ad[K] >= B.adma[K];
-    set('b-ad', B.adma[K] == null ? '–' : adUp ? '▲ Rising' : '▼ Falling', B.adma[K] == null ? '' : (adUp ? 'Above' : 'Below') + ' its 40-week average', adUp ? 'up' : 'down');
+    set('b-ad', B.adma[K] == null ? '–' : adUp ? T('▲ Rising', '▲ Stiger') : T('▼ Falling', '▼ Faller'), B.adma[K] == null ? '' : (adUp ? T('Above', 'Över') : T('Below', 'Under')) + T(' its 40-week average', ' sitt 40-veckorssnitt'), adUp ? 'up' : 'down');
     const hi = B.highs[K], lo = B.lows[K];
-    set('b-hl', hi == null ? '–' : hi + ' / ' + lo, 'Stocks at a new 52-week high / low this week', hi == null ? '' : hi > lo ? 'up' : hi < lo ? 'down' : '');
+    set('b-hl', hi == null ? '–' : hi + ' / ' + lo, T('Stocks at a new 52-week high / low this week', 'Aktier på ny 52-veckors högsta / lägsta denna vecka'), hi == null ? '' : hi > lo ? 'up' : hi < lo ? 'down' : '');
     const th = B.thrusts[B.thrusts.length - 1];
-    set('b-th', th == null ? 'None' : d3.utcFormat('%b %Y')(weekDate(th)), th == null ? 'No thrust in the data' : (K - th <= 26 ? 'Recent, historically a strong start signal' : Math.round((K - th) / 52 * 10) / 10 + ' years ago') + ' · ' + B.thrusts.length + ' since 2006', th != null && K - th <= 26 ? 'up' : '');
+    set('b-th', th == null ? T('None', 'Ingen') : uf('%b %Y')(weekDate(th)), th == null ? T('No thrust in the data', 'Ingen thrust i datan') : (K - th <= 26 ? T('Recent, historically a strong start signal', 'Nyligen, historiskt en stark startsignal') : f1((K - th) / 52) + T(' years ago', ' år sedan')) + ' · ' + B.thrusts.length + T(' since 2006', ' sedan 2006'), th != null && K - th <= 26 ? 'up' : '');
     const rowsOf = (vals, mas) => { let r = vals.map((v, k) => ({ k, date: weekDate(k), v, ma: mas ? mas[k] : null })).filter((r2) => r2.v != null); if (BWEEKS) r = r.slice(-BWEEKS); return r; };
-    smallChart(document.getElementById('c-pct'), rowsOf(B.pct), { domain: [0, 100], fmt: (v) => d3.format('.0f')(v) + '%', refs: [40, 60], color: 'var(--teal)', name: 'Above MA40' });
-    smallChart(document.getElementById('c-ad'), rowsOf(B.ad, B.adma), { fmt: d3.format(',.0f'), color: 'var(--line)', name: 'A/D line' });
+    smallChart(document.getElementById('c-pct'), rowsOf(B.pct), { domain: [0, 100], fmt: (v) => nf('.0f')(v) + '%', refs: [40, 60], color: 'var(--teal)', name: T('Above MA40', 'Över MA40') });
+    smallChart(document.getElementById('c-ad'), rowsOf(B.ad, B.adma), { fmt: nf(',.0f'), color: 'var(--line)', name: T('A/D line', 'A/D-linje') });
   }
 
   function wireSeg(id, fn) {
@@ -721,14 +737,98 @@
     }));
   }
 
+  // ---------- language: static texts are matched by their English wording ----------
+  const SV = {
+    'Sector Trends · Sweden': 'Sektortrender · Sverige', 'Loading…': 'Laddar…',
+    'Swedish Sector': 'Svenska sektor-', 'Trends': 'trender',
+    'A combined bull-trend check for the Stockholm exchange, market breadth, how Large, Mid and Small Cap are doing, plus ten home-made sector indices from Swedish stocks, each with its 40-week moving average (MA40, about 200 trading days). A sector above its MA40 is in an uptrend; below it, a downtrend. Updated automatically every Friday.':
+      'En samlad bulltrendkontroll för Stockholmsbörsen, marknadsbredd, hur Large, Mid och Small Cap går, samt tio egna sektorindex av svenska aktier, vart och ett med sitt 40-veckors glidande medelvärde (MA40, ungefär 200 handelsdagar). En sektor över sitt MA40 är i upptrend, under det i nedtrend. Uppdateras automatiskt varje fredag.',
+    'Bull-trend check ·': 'Bulltrendkontroll ·',
+    'Six well-tested trend signals combined: four on the index price (trend, momentum, market structure) and two on market breadth. The more of them agree, the more robust the signal.':
+      'Sex väl beprövade trendsignaler sammanvägda: fyra på indexets pris (trend, momentum, marknadsstruktur) och två på marknadsbredd. Ju fler som är överens, desto robustare signal.',
+    'Swedish stock market by size': 'Stockholmsbörsen efter bolagsstorlek',
+    "OMX Stockholm Large Cap, Mid Cap and Small Cap, plus OMXSPI for the whole exchange (price indices). All start at 100 at the beginning of the chosen period, so the lines show directly which part of the market has done best. Dashed lines: each index's 40-week moving average.":
+      'OMX Stockholm Large Cap, Mid Cap och Small Cap samt OMXSPI för hela börsen (prisindex). Alla startar på 100 i början av vald period, så linjerna visar direkt vilken del av marknaden som gått bäst. Streckade linjer: varje index 40-veckors glidande medelvärde.',
+    'MA40 on': 'MA40 på', 'Off': 'Av', '1y': '1 år', '2y': '2 år', '3y': '3 år', '5y': '5 år', '10y': '10 år',
+    'Since 2016': 'Sedan 2016', 'Since 2006': 'Sedan 2006', 'Index': 'Index', '4 weeks': '4 veckor', '52 weeks': '52 veckor',
+    'vs MA40': 'mot MA40', 'Since': 'Sedan', 'Sector': 'Sektor',
+    'Market breadth': 'Marknadsbredd',
+    "Is the move carried by many stocks or just a few? Measured on the page's": 'Bärs rörelsen av många aktier eller bara några få? Mäts på sidans',
+    'stocks. A rise that most stocks take part in tends to last longer than one carried by a handful of heavyweights.': 'aktier. En uppgång som de flesta aktier är med i brukar hålla längre än en som bärs av ett fåtal tungviktare.',
+    'Stocks above MA40': 'Aktier över MA40', 'Advance/decline line': 'Advance/decline-linje', '52-week highs / lows': '52-veckors högsta / lägsta',
+    'Last breadth thrust': 'Senaste breadth thrust', 'Share of stocks above their own MA40 (%)': 'Andel aktier över sitt eget MA40 (%)',
+    '40% and 60% lines': '40 %- och 60 %-linjer',
+    'Advance/decline line (cumulative: stocks up minus stocks down each week)': 'Advance/decline-linje (ackumulerad: stigande minus fallande aktier varje vecka)',
+    '40-week moving average': '40-veckors glidande medelvärde',
+    'The situation right now': 'Läget just nu', 'Sectors in uptrend': 'Sektorer i upptrend', 'Strongest sector': 'Starkaste sektor', 'Weakest sector': 'Svagaste sektor',
+    'Stocks above': 'Aktier över', 'own MA40': 'eget MA40',
+    "Sorted by distance to the 40-week moving average. Click a row to jump to the sector's chart.": 'Sorterat efter avstånd till 40-veckors glidande medelvärde. Klicka på en rad för att gå till sektorns graf.',
+    'Sector index (equal weight)': 'Sektorindex (likaviktat)', 'Linear': 'Linjär', 'Log': 'Log',
+    'How the indices are built': 'Så byggs indexen', 'Sector index': 'Sektorindex',
+    'Each sector is an equal-weight index of its stocks, starting at 100 in January 2006. Every week the index moves by the average weekly price change of its stocks, so a 2 kr stock counts as much as a 900 kr stock. Stocks listed later (for example Evolution, Epiroc, Sagax) join from their first full week without making the line jump.':
+      'Varje sektor är ett likaviktat index av sina aktier, med start på 100 i januari 2006. Varje vecka rör sig indexet med aktiernas genomsnittliga kursförändring den veckan, så en aktie för 2 kr väger lika mycket som en för 900 kr. Aktier som noterats senare (till exempel Evolution, Epiroc, Sagax) kommer in från sin första hela vecka utan att linjen hoppar.',
+    'Prices': 'Kurser',
+    'Weekly closing prices (the last trading day of each week) from Yahoo Finance, adjusted by Yahoo for share splits and spin-offs. Dividends are not added back, so it is a price index, like a normal price chart.':
+      'Veckans stängningskurs (sista handelsdagen varje vecka) från Yahoo Finance, justerad av Yahoo för split och avknoppningar. Utdelningar läggs inte tillbaka, så det är ett prisindex, som ett vanligt kursdiagram.',
+    'The average of the last 40 weekly values, about 200 trading days. Above the MA40 = uptrend, below = downtrend. "Since" is the week the line last crossed its MA40.':
+      'Medelvärdet av de senaste 40 veckovärdena, ungefär 200 handelsdagar. Över MA40 = upptrend, under = nedtrend. "Sedan" är veckan då linjen senast korsade sitt MA40.',
+    'Large, Mid and Small Cap': 'Large, Mid och Small Cap',
+    "Nasdaq's official OMX Stockholm Large Cap, Mid Cap and Small Cap price indices (weekly closes), from Nasdaq's website. Free history goes back 10 years (to November 2016); new weeks are added every Friday. In the chart all three are set to 100 at the start of the chosen period.":
+      'Nasdaqs officiella prisindex OMX Stockholm Large Cap, Mid Cap och Small Cap (veckostängning), från Nasdaqs webbplats. Gratis historik finns 10 år bakåt (till november 2016), och nya veckor läggs till varje fredag. I grafen sätts alla till 100 i början av vald period.',
+    'OMX Stockholm All-Share (price index): every share on Nasdaq Stockholm, weighted by market value. Shown with Large, Mid and Small Cap and used for the bull-trend check. If it has no data, the check uses Large Cap instead.':
+      'OMX Stockholm All-Share (prisindex): alla aktier på Nasdaq Stockholm, viktade efter börsvärde. Visas tillsammans med Large, Mid och Small Cap och används i bulltrendkontrollen. Saknas data används Large Cap i stället.',
+    'Bull-trend check': 'Bulltrendkontroll',
+    'Six signals, each worth 1 point (breadth between 40% and 60% gives ½): (1) index above its MA40; (2) MA40 higher than 4 weeks ago; (3) index higher than 52 weeks ago (12-month momentum); (4) higher highs and higher lows: the highest and the lowest weekly close of the last 13 weeks are both above those of the 13 weeks before; (5) at least 60% of the stocks above their own MA40; (6) the advance/decline line above its MA40. 5–6 points with the index above its MA40 = robust bull trend. The history line counts every past week with the same score and checks the index 26 weeks later. The periods overlap, so it is a rough guide, not a proof.':
+      'Sex signaler, värda 1 poäng var (bredd mellan 40 % och 60 % ger ½): (1) indexet över sitt MA40; (2) MA40 högre än för 4 veckor sedan; (3) indexet högre än för 52 veckor sedan (12-månaders momentum); (4) högre toppar och högre bottnar: den högsta och den lägsta veckostängningen de senaste 13 veckorna ligger båda över motsvarande för de 13 veckorna före; (5) minst 60 % av aktierna över sitt eget MA40; (6) advance/decline-linjen över sitt MA40. 5–6 poäng med indexet över sitt MA40 = robust bulltrend. Den historiska raden räknar alla tidigare veckor med samma poäng och kontrollerar indexet 26 veckor senare. Perioderna överlappar, så det är en grov vägledning, inte ett bevis.',
+    "Calculated from the page's own stocks, the larger Swedish companies chosen today, not all stocks on the exchange. Stocks that were delisted, like those that went bankrupt, are missing, which flatters the old history a little. A breadth thrust here means the share above MA40 rising from under 30% to over 70% within 10 weeks. That is a weekly version of Martin Zweig's daily signal, so it is not the same thing.":
+      'Beräknas på sidans egna aktier, de större svenska bolagen valda i dag, inte alla aktier på börsen. Aktier som avnoterats, till exempel efter konkurs, saknas, vilket förskönar den gamla historiken något. En breadth thrust betyder här att andelen över MA40 stiger från under 30 % till över 70 % inom 10 veckor. Det är en veckoversion av Martin Zweigs dagliga signal, så det är inte exakt samma sak.',
+    'Caveat': 'Förbehåll',
+    'Moving-average signals lag and can flip back and forth in sideways markets. This is an overview tool, not a buy or sell signal.':
+      'Signaler från glidande medelvärden kommer i efterhand och kan slå fram och tillbaka i sidledes marknader. Det här är ett översiktsverktyg, inte en köp- eller säljsignal.',
+    '⚠ For informational purposes only — not financial advice.': '⚠ Endast i informationssyfte, inte finansiell rådgivning.',
+  };
+  const STATIC = [];   // text nodes present before any data is drawn
+  (function collect() {
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let n; while ((n = w.nextNode())) {
+      if (n.parentNode.closest('script, #lang-btn')) continue;
+      const key = n.nodeValue.trim(); if (!key || !(key in SV)) continue;
+      const lead = n.nodeValue.match(/^\s*/)[0], trail = n.nodeValue.match(/\s*$/)[0];
+      STATIC.push({ n, en: n.nodeValue, sv: lead + SV[key] + trail });
+    }
+  })();
+  const FLAG_SE = '<svg viewBox="0 0 16 10" width="24" height="15" aria-hidden="true"><rect width="16" height="10" fill="#006aa7"/><rect x="5" width="2" height="10" fill="#fecc00"/><rect y="4" width="16" height="2" fill="#fecc00"/></svg>';
+  const FLAG_GB = '<svg viewBox="0 0 60 30" width="24" height="12" aria-hidden="true"><clipPath id="ukc"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><path d="M0,0 v30 h60 v-30 z" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#ukc)" stroke="#C8102E" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></svg>';
+  function applyStatic() {
+    STATIC.forEach((x) => { x.n.nodeValue = LANG === 'sv' ? x.sv : x.en; });
+    document.documentElement.lang = LANG;
+    document.title = T('Swedish Sector Trends — StockLab', 'Svenska sektortrender — StockLab');
+    const btn = document.getElementById('lang-btn');
+    btn.innerHTML = LANG === 'sv' ? FLAG_GB : FLAG_SE;   // the flag shows the language you switch to
+    btn.title = btn.ariaLabel = LANG === 'sv' ? 'Switch to English' : 'Byt till svenska';
+    if (DATA) document.getElementById('updated').textContent = T('Data through ', 'Data till och med ') + DATA.data_through;
+  }
+  function renderAll() {
+    applyStatic();
+    DATA.sectors.forEach((x) => { x.name = LANG === 'sv' ? (SECSV[x.id] || x.name_en) : x.name_en; });
+    try { drawVerdict(); } catch (err) { document.getElementById('verdict').hidden = true; console.error(err); }
+    drawSegments(); drawBreadth(); drawSummary(); drawSectors();
+  }
+  try { const saved = localStorage.getItem('st-lang'); LANG = saved || ((navigator.language || '').toLowerCase().startsWith('sv') ? 'sv' : 'en'); } catch (e) { LANG = 'en'; }
+  applyStatic();
+  document.getElementById('lang-btn').addEventListener('click', () => {
+    LANG = LANG === 'sv' ? 'en' : 'sv';
+    try { localStorage.setItem('st-lang', LANG); } catch (e) { /* storage unavailable */ }
+    if (DATA) renderAll(); else applyStatic();
+  });
+
   fetch('data.json', { cache: 'no-cache' })
     .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then((d) => {
       DATA = d;
-      document.getElementById('updated').textContent = 'Data through ' + d.data_through;
+      DATA.sectors.forEach((x) => { x.name_en = x.name; });
       computeAll(); B = computeBreadth();
-      try { drawVerdict(); } catch (err) { document.getElementById('verdict').hidden = true; console.error(err); }
-      drawSegments(); drawBreadth(); drawSummary(); drawSectors();
+      renderAll();
       document.querySelectorAll('#brange-seg button').forEach((btn) => btn.addEventListener('click', () => {
         document.querySelectorAll('#brange-seg button').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
         BWEEKS = Number(btn.dataset.weeks); drawBreadth();
@@ -743,7 +843,7 @@
       let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawCharts(); drawSegments(); drawBreadth(); }, 150); });
     })
     .catch((e) => {
-      document.getElementById('updated').textContent = 'Could not load data';
+      document.getElementById('updated').textContent = T('Could not load data', 'Kunde inte ladda data');
       document.getElementById('summary-text').innerHTML = '<span class="err">Could not load data.json (' + String(e.message).replace(/[<>&]/g, '') + '). Run the "Update sector trends" workflow once.</span>';
     });
 })();
