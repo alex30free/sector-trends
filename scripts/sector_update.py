@@ -32,9 +32,11 @@ UA = "Mozilla/5.0 (compatible; StockLab sector trends; github.com/alex30free)"
 # daily values; older weeks already in data.json are kept, so the history grows over time.
 # The Yahoo symbol is only a fallback for the latest days if Nasdaq's API cannot be reached.
 SEGMENTS = [
-    ("large", "Large Cap", "IX13942", "^OMXSLCPI"),
-    ("mid", "Mid Cap", "IX3362", "^OMXSMCPI"),
-    ("small", "Small Cap", "IX3364", "^OMXSSCPI"),
+    ("large", "Large Cap", ["IX13942"], "^OMXSLCPI"),
+    ("mid", "Mid Cap", ["IX3362"], "^OMXSMCPI"),
+    ("small", "Small Cap", ["IX3364"], "^OMXSSCPI"),
+    # Whole Stockholm exchange (OMX Stockholm All-Share PI). Used by the page's bull-trend check.
+    ("all", "OMXSPI", ["SE0000744195"], "^OMXSPI"),
 ]
 BROWSER_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
@@ -200,11 +202,19 @@ def main():
     if prev_weeks.get("start") == START.isoformat():
         prev_seg = {x["id"]: x["close"] for x in prev.get("segments", [])}
     segments = []
-    for sid, sname, nid, ysym in SEGMENTS:
+    for sid, sname, nids, ysym in SEGMENTS:
         old = prev_seg.get(sid, [])
         try:
-            rows = fetch_nasdaq_index(nid)
-            src = "Nasdaq"
+            rows, errs = None, []
+            for nid in nids:
+                try:
+                    rows = fetch_nasdaq_index(nid)
+                    src = "Nasdaq %s" % nid
+                    break
+                except Exception as e:  # noqa: BLE001
+                    errs.append("%s: %s" % (nid, e))
+            if rows is None:
+                raise RuntimeError("; ".join(errs))
         except Exception as exc:  # noqa: BLE001
             try:
                 rows = [(d, c) for d, c, _ in fetch_daily(ysym)]
