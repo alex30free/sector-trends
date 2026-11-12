@@ -82,6 +82,29 @@
     .leg-btn:hover { border-color: var(--muted2); }
     .leg-btn.off { color: var(--muted); border-style: dashed; }
     .leg-btn.off .sw { opacity: .25; }
+    html[lang="sv"] [data-lang="en"], html[lang="en"] [data-lang="sv"] { display: none !important; }
+    .stats-btn { margin-top: 14px; background: var(--surface2); color: var(--text); border: 1px solid var(--border2); border-radius: 4px; padding: 8px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; cursor: pointer; }
+    .stats-btn:hover { border-color: var(--teal); color: var(--white); }
+    #stats-dlg { width: min(1180px, 96vw); max-height: 92vh; margin: auto; background: var(--surface); color: var(--text); border: 1px solid var(--border2); border-radius: 8px; padding: 0; }
+    #stats-dlg::backdrop { background: rgba(0,0,0,.7); }
+    .dlg-head { position: sticky; top: 0; z-index: 2; background: var(--surface); display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border2); }
+    .dlg-head h2 { font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 16px; color: var(--white); }
+    .dlg-close { flex: none; background: none; border: 1px solid var(--border2); color: var(--text); border-radius: 4px; width: 32px; height: 32px; font-size: 16px; cursor: pointer; }
+    .dlg-body { padding: 16px 20px 24px; }
+    .dlg-tabs { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .stats-fig { background: #fff; border-radius: 6px; overflow: hidden; }
+    .stats-fig img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+    .stats-text { margin-top: 16px; font-size: 14px; line-height: 1.65; max-width: 980px; }
+    .stats-text h3 { font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 14px; color: var(--white); margin: 18px 0 6px; }
+    .stats-text p { margin: 6px 0; }
+    .stats-text ul { margin: 6px 0 6px 20px; }
+    .stats-text li { margin: 3px 0; }
+    .stats-text b { color: var(--white); font-weight: 400; }
+    .cmp { margin: 8px 0 12px; font-size: 12px; }
+    .cmp td:first-child { font-family: 'IBM Plex Mono', monospace; color: var(--text); }
+    .cmp td, .cmp th { white-space: normal; }
+    .cmp tbody tr { cursor: default; }
+    .stats-empty { padding: 40px 20px; text-align: center; color: var(--muted2); border: 1px dashed var(--border2); border-radius: 6px; }
     .lang-btn:hover { border-color: var(--muted2); }
     .lang-btn svg { display: block; border-radius: 1px; }
     /* bull-trend check */
@@ -131,6 +154,7 @@
     </div>
     <ul class="checks" id="v-checks"></ul>
     <p class="hist" id="v-hist"></p>
+    <button type="button" class="stats-btn" id="stats-open"><span data-lang="sv">📊 Statistik i bull- och björntrend</span><span data-lang="en">📊 Statistics in bull and bear trends</span></button>
   </section>
 
   <section class="card" id="segments">
@@ -249,6 +273,304 @@
       <dd>Moving-average signals lag and can flip back and forth in sideways markets. This is an overview tool, not a buy or sell signal.</dd>
     </dl>
   </details>
+
+  <dialog id="stats-dlg" aria-labelledby="stats-title">
+    <div class="dlg-head">
+      <h2 id="stats-title"><span data-lang="sv">Statistik för OMXSPI i bull- och björntrend</span><span data-lang="en">OMXSPI statistics in bull and bear trends</span></h2>
+      <button type="button" class="dlg-close" id="stats-close" aria-label="Close">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="dlg-tabs">
+        <div class="seg" role="group">
+          <button type="button" data-trend-tab="bull" aria-pressed="true"><span data-lang="sv">Bulltrend (över MA200)</span><span data-lang="en">Bull trend (above MA200)</span></button>
+          <button type="button" data-trend-tab="bear" aria-pressed="false"><span data-lang="sv">Björntrend (under MA200)</span><span data-lang="en">Bear trend (below MA200)</span></button>
+        </div>
+        <div class="seg" role="group">
+          <button type="button" data-view-tab="year" aria-pressed="true"><span data-lang="sv">År</span><span data-lang="en">Year</span></button>
+          <button type="button" data-view-tab="month" aria-pressed="false"><span data-lang="sv">Månad</span><span data-lang="en">Month</span></button>
+          <button type="button" data-view-tab="day" aria-pressed="false"><span data-lang="sv">Dag</span><span data-lang="en">Day</span></button>
+        </div>
+      </div>
+
+      <!-- ===== BULL: YEAR ===== -->
+      <div data-panel="bull-year">
+        <div class="stats-fig"><img src="stats/bull/year.webp" alt="OMXSPI yearly and monthly statistics in bull trend" loading="lazy"></div>
+        <div class="stats-text" data-lang="sv">
+          <h3>Årlig utveckling</h3>
+          <p>Staplarna visar hur mycket OMXSPI steg varje år, men <b>bara räknat på de dagar då indexet låg över sitt 200-dagars glidande medelvärde</b>. Dagar under MA200 är bortplockade. Därför finns inga negativa år, och träffsäkerheten är 100 %.</p>
+          <p>Den blå linjen (höger axel) visar den sammanlagda utvecklingen om man bara hade ägt index under dessa dagar: omkring 17 000 % sedan 1997, före avgifter och skatt. Det är ingen handelsstrategi. I verkligheten förlorar man en del vid varje köp och sälj runt MA200, och man missar ofta början på uppgångarna.</p>
+          <ul>
+            <li><b>Snitt 20,3 % · median 17,5 %:</b> ett typiskt år gav indexet 17–20 % under bulldagarna. Snittet är högre än medianen eftersom några extremår, som 1999 med cirka +75 %, drar upp det.</li>
+            <li><b>Stdev 14,6 %:</b> standardavvikelsen, alltså hur mycket åren brukar avvika från snittet. Ett vanligt år hamnar ungefär mellan +6 % och +35 %.</li>
+            <li><b>Histogrammet</b> visar hur många år som hamnat i varje intervall. De flesta ligger mellan cirka 6 % och 35 %.</li>
+          </ul>
+          <h3>Genomsnittlig utveckling per månad (tabellen)</h3>
+          <ul>
+            <li><b>Snitt / Median:</b> genomsnittlig respektive mittersta utveckling för månaden.</li>
+            <li><b>Hitratio:</b> andelen gånger som månaden slutade plus.</li>
+            <li><b>Antal:</b> hur många gånger månaden ingår i statistiken, cirka 21–25 sedan 1997.</li>
+            <li><b>Stdev:</b> hur mycket utfallen spretar.</li>
+            <li><b>Geno…:</b> rubriken är avkortad. Talet är genomsnittet för de gånger månaden gick upp. Det framgår av december, där hitratio är 100 % och talet blir samma som snittet.</li>
+            <li><b>Störst…:</b> den största uppgången för månaden.</li>
+          </ul>
+          <p><b>Tolkning:</b> december är starkast, +4,1 % i snitt och upp alla 22 gånger. Därefter kommer februari (+3,2 %), juli (+2,9 %) och november (+2,8 %, upp 87 % av gångerna). Maj (+0,2 %), augusti (+0,7 %) och juni (+0,8 %) är svagast, vilket stämmer med det kända mönstret "sell in May". Skillnaderna mellan månaderna (1–4 %) är dock små jämfört med spridningen (cirka 3 %), och varje månad har bara drygt 20 observationer. Se det som en svag tendens, inte en regel.</p>
+        </div>
+        <div class="stats-text" data-lang="en">
+          <h3>Yearly performance</h3>
+          <p>The bars show how much OMXSPI rose each year, <b>counting only the days when the index was above its 200-day moving average</b>. Days below the MA200 are left out, so there are no negative years and the hit ratio is 100%.</p>
+          <p>The blue line (right axis) is the cumulative result of owning the index only on those days: about 17,000% since 1997, before costs and tax. It is not a trading strategy. In practice you lose something on every buy and sell around the MA200, and you often miss the start of a rally.</p>
+          <ul>
+            <li><b>Average 20.3% · median 17.5%:</b> a typical year gained 17–20% on its bull days. The average is higher than the median because a few extreme years, such as 1999 at about +75%, pull it up.</li>
+            <li><b>Stdev 14.6%:</b> the standard deviation, i.e. how far years usually land from the average. A normal year falls roughly between +6% and +35%.</li>
+            <li><b>The histogram</b> counts how many years fell in each range. Most are between about 6% and 35%.</li>
+          </ul>
+          <h3>Average performance by month (the table)</h3>
+          <ul>
+            <li><b>Average / Median:</b> the mean and the middle result for the month.</li>
+            <li><b>Hit ratio:</b> the share of times the month ended positive.</li>
+            <li><b>Count:</b> how many times the month is in the sample, about 21–25 since 1997.</li>
+            <li><b>Stdev:</b> how spread out the results are.</li>
+            <li><b>Geno…:</b> the heading is cut off. The figure is the average of the times the month rose. December shows this: with a 100% hit ratio, it equals the average.</li>
+            <li><b>Störst…:</b> the month's largest gain.</li>
+          </ul>
+          <p><b>Reading:</b> December is strongest, +4.1% on average and up all 22 times. Next come February (+3.2%), July (+2.9%) and November (+2.8%, up 87% of the time). May (+0.2%), August (+0.7%) and June (+0.8%) are weakest, which fits the well-known "sell in May" pattern. The gaps between months (1–4%) are small compared with the spread (about 3%), though, and each month has only about 20 observations. Treat it as a weak tendency, not a rule.</p>
+        </div>
+      </div>
+
+      <!-- ===== BULL: MONTH ===== -->
+      <div data-panel="bull-month" hidden>
+        <div class="stats-fig"><img src="stats/bull/month.webp" alt="OMXSPI monthly and day-of-month statistics in bull trend" loading="lazy"></div>
+        <div class="stats-text" data-lang="sv">
+          <h3>Månatlig utveckling</h3>
+          <p>Varje stapel är en månad under bulltrend: grön om indexet steg, röd om det föll. Den blå linjen är den sammanlagda utvecklingen.</p>
+          <ul>
+            <li><b>Snitt 1,95 % · median 1,70 %:</b> en vanlig bullmånad ger knappt 2 %.</li>
+            <li><b>Hitratio 72 %:</b> ungefär 7 av 10 månader slutar plus.</li>
+            <li><b>Stdev 3,5 %:</b> en enskild månad kan lätt avvika med 3–4 procentenheter från snittet.</li>
+            <li><b>Upp 3,47 % (max 16,5 %) · Ner −2,05 % (max −7,0 %):</b> uppmånaderna är i snitt större än nedmånaderna, och de är dessutom fler. Det är därifrån avkastningen i bulltrend kommer.</li>
+            <li><b>Histogrammet</b> lutar åt höger: de flesta månader ligger mellan 0 och +5 %, och ras på över −5 % är ovanliga.</li>
+          </ul>
+          <h3>Genomsnittlig utveckling per dag i månaden</h3>
+          <p>Här visas snittet för varje kalenderdag (1–31). Menyn "Alla" väljer vilka månader som räknas med.</p>
+          <p><b>Tolkning:</b> den 1:a sticker ut med +0,52 % i snitt och plus 71 % av gångerna. Den 2:a–4:e är också positiva. Det kallas <b>månadsskifteseffekten</b>: löner, pensionsinbetalningar och månadssparande i fonder köper aktier kring månadsskiftet. Mitt i månaden är snittet nära noll (den 10:e −0,01 %). Den 1:a har färre observationer (140) eftersom den ofta faller på en helg eller helgdag.</p>
+        </div>
+        <div class="stats-text" data-lang="en">
+          <h3>Monthly performance</h3>
+          <p>Each bar is one month in a bull trend: green if the index rose, red if it fell. The blue line is the cumulative result.</p>
+          <ul>
+            <li><b>Average 1.95% · median 1.70%:</b> a normal bull month gives just under 2%.</li>
+            <li><b>Hit ratio 72%:</b> about 7 in 10 months end positive.</li>
+            <li><b>Stdev 3.5%:</b> a single month can easily differ by 3–4 points from the average.</li>
+            <li><b>Up 3.47% (max 16.5%) · Down −2.05% (max −7.0%):</b> up months are bigger on average than down months, and there are more of them. That is where the return in a bull trend comes from.</li>
+            <li><b>The histogram</b> leans to the right: most months fall between 0 and +5%, and drops worse than −5% are rare.</li>
+          </ul>
+          <h3>Average performance by day of the month</h3>
+          <p>The average for each calendar day (1–31). The "Alla" (All) menu chooses which months are included.</p>
+          <p><b>Reading:</b> the 1st stands out at +0.52% on average, positive 71% of the time. The 2nd–4th are also positive. This is the <b>turn-of-the-month effect</b>: salaries, pension contributions and monthly fund savings buy shares around the turn of the month. Mid-month the average is close to zero (the 10th is −0.01%). The 1st has fewer observations (140) because it often falls on a weekend or holiday.</p>
+        </div>
+      </div>
+
+      <!-- ===== BULL: DAY ===== -->
+      <div data-panel="bull-day" hidden>
+        <div class="stats-fig"><img src="stats/bull/day.webp" alt="OMXSPI daily and weekday statistics in bull trend" loading="lazy"></div>
+        <div class="stats-text" data-lang="sv">
+          <h3>Daglig utveckling</h3>
+          <ul>
+            <li><b>Snitt 0,11 % · median 0,13 % per dag:</b> det låter lite, men med cirka 170 bulldagar per år (ungefär 5 000 sedan 1997) blir det ungefär de 20 % per år som syns i årsfliken.</li>
+            <li><b>Hitratio 56 %:</b> drygt varannan dag är en plusdag.</li>
+            <li><b>Stdev 1,0 %:</b> en vanlig dag rör sig indexet upp till ungefär ±1 %.</li>
+            <li><b>Upp 0,75 % · Ner −0,73 %:</b> plus- och minusdagar är i snitt lika stora. Fördelen i bulltrend kommer alltså av att det är <b>fler</b> plusdagar (56 mot 44), inte av att de är större.</li>
+            <li><b>Histogrammet</b> liknar en klockkurva runt noll. De höga staplarna längst ut till vänster och höger samlar alla dagar utanför skalan, under −3,2 % respektive över +3,2 %.</li>
+          </ul>
+          <h3>Genomsnittlig utveckling per veckodag</h3>
+          <p><b>Tolkning:</b> fredag är bäst (+0,18 %, plus 60 % av gångerna) och tisdag svagast (+0,05 %). Varje veckodag har cirka 1 000 observationer, totalt ungefär 5 000 bulldagar sedan 1997. Skillnaderna mellan veckodagarna (någon tiondels procent) är dock små jämfört med den dagliga spridningen på 1 %, och de försvinner nästan helt efter courtage och spread. Det är intressant att veta, men inget att handla på.</p>
+        </div>
+        <div class="stats-text" data-lang="en">
+          <h3>Daily performance</h3>
+          <ul>
+            <li><b>Average 0.11% · median 0.13% per day:</b> it sounds small, but over about 170 bull days a year (roughly 5,000 since 1997) it adds up to the roughly 20% a year seen on the Year tab.</li>
+            <li><b>Hit ratio 56%:</b> slightly more than every other day is an up day.</li>
+            <li><b>Stdev 1.0%:</b> on a normal day the index moves up to about ±1%.</li>
+            <li><b>Up 0.75% · Down −0.73%:</b> up and down days are about the same size. The edge in a bull trend comes from there being <b>more</b> up days (56 vs 44), not bigger ones.</li>
+            <li><b>The histogram</b> is a bell curve around zero. The tall bars at the far left and right collect all days beyond the scale, below −3.2% and above +3.2%.</li>
+          </ul>
+          <h3>Average performance by weekday</h3>
+          <p><b>Reading:</b> Friday is best (+0.18%, up 60% of the time) and Tuesday weakest (+0.05%). Each weekday has about 1,000 observations, roughly 5,000 bull days since 1997 in all. The gaps between weekdays (a tenth of a percent or so) are small compared with the daily spread of 1%, though, and almost disappear after brokerage fees and spread. Interesting to know, but nothing to trade on.</p>
+        </div>
+      </div>
+
+      <!-- ===== BULL: COMMON ===== -->
+      <div data-panel-common="bull">
+        <div class="stats-text" data-lang="sv">
+          <h3>Nyckeltalen överst i bilderna</h3>
+          <ul>
+            <li><b>1 162,53 · −0,16 %:</b> indexets kurs och dagens förändring.</li>
+            <li><b>RSI(14) 63,8:</b> styrkeindex 0–100 för de senaste 14 dagarna. Över 70 brukar räknas som överköpt, under 30 som översålt. 63,8 är starkt men inte överhettat.</li>
+            <li><b>ATR(14) ±13,7:</b> genomsnittlig daglig svängning de senaste 14 dagarna i indexpunkter, cirka 1,2 %.</li>
+            <li><b>MA50 +2,8 % · MA200 +5,6 %:</b> kursen ligger 2,8 % över sitt 50-dagars och 5,6 % över sitt 200-dagars glidande medelvärde. Det stämmer med sidans eget MA40 i veckor (+5,6 %).</li>
+            <li><b>52w range 97 %:</b> var i det senaste årets spann kursen ligger. 0 % är årslägsta och 100 % årshögsta, så 97 % betyder nära toppen.</li>
+            <li><b>Avg vol 23,4 md:</b> genomsnittlig daglig omsättning, cirka 23 miljarder kronor.</li>
+            <li><b>YTD +11,0 %:</b> utvecklingen hittills i år.</li>
+            <li><b>i rad 1 dgr:</b> hur många handelsdagar i rad kursen rört sig åt samma håll.</li>
+          </ul>
+          <h3>Bra att veta</h3>
+          <p>Bilderna är sparade ögonblicksbilder från 12 november 2026 och uppdateras inte automatiskt som resten av sidan. Statistiken visar vad som hänt i efterhand under knappt 30 år. Den säger något om vad som är normalt i en bulltrend, men inget säkert om framtiden.</p>
+        </div>
+        <div class="stats-text" data-lang="en">
+          <h3>The key figures at the top of the pictures</h3>
+          <ul>
+            <li><b>1,162.53 · −0.16%:</b> the index level and today's change.</li>
+            <li><b>RSI(14) 63.8:</b> a 0–100 strength index over the last 14 days. Above 70 is usually seen as overbought, below 30 as oversold. 63.8 is strong but not overheated.</li>
+            <li><b>ATR(14) ±13.7:</b> the average daily range over 14 days in index points, about 1.2%.</li>
+            <li><b>MA50 +2.8% · MA200 +5.6%:</b> the index is 2.8% above its 50-day and 5.6% above its 200-day moving average. That matches the page's own weekly MA40 (+5.6%).</li>
+            <li><b>52w range 97%:</b> where the price sits in the last year's range. 0% is the 52-week low and 100% the high, so 97% means close to the top.</li>
+            <li><b>Avg vol 23.4 bn:</b> average daily turnover, about SEK 23 billion.</li>
+            <li><b>YTD +11.0%:</b> performance so far this year.</li>
+            <li><b>i rad 1 dgr:</b> how many trading days in a row the price has moved the same way.</li>
+          </ul>
+          <h3>Good to know</h3>
+          <p>The pictures are saved snapshots from 12 November 2026 and are not updated automatically like the rest of the page. The statistics show what happened, after the fact, over just under 30 years. They say something about what is normal in a bull trend, but nothing certain about the future.</p>
+        </div>
+      </div>
+
+      <!-- ===== BEAR: YEAR ===== -->
+      <div data-panel="bear-year" hidden>
+        <div class="stats-fig"><img src="stats/bear/year.webp" alt="OMXSPI yearly and monthly statistics in bear trend" loading="lazy"></div>
+        <div class="stats-text" data-lang="sv">
+          <h3>Årlig utveckling</h3>
+          <p>Här räknas bara de dagar då OMXSPI låg <b>under</b> sitt 200-dagars glidande medelvärde. Staplarna visar hur mycket indexet föll eller steg under de dagarna varje år.</p>
+          <p>Den blå linjen visar vad som hänt om man bara hade ägt index under björndagarna: cirka −97 % sedan 1997. I bulltrend var samma linje cirka +17 000 %.</p>
+          <ul>
+            <li><b>Snitt −10,5 % · median −6,8 %:</b> björndagarna kostade i snitt drygt 10 % per år. Snittet dras ned av några få katastrofår, framför allt 2008 (cirka −42 %) och 2002 (cirka −38 %).</li>
+            <li><b>Hitratio 7 %:</b> bara 2 av 28 år var björndagarna sammantaget positiva, och då med högst +6 %.</li>
+            <li><b>Stdev 11,1 %:</b> åren skiljer sig mycket åt. Vissa år är det en liten dipp på några procent, andra år en krasch.</li>
+            <li><b>Histogrammet</b> visar att de flesta år hamnar mellan −1 % och −12 %, med en lång svans av mycket dåliga år till vänster.</li>
+          </ul>
+          <h3>Genomsnittlig utveckling per månad (tabellen)</h3>
+          <p>Kolumnerna betyder samma sak som i bulltrendfliken. Notera <b>Antal</b>: varje månad har bara 10–18 observationer, eftersom björntrend är mer sällsynt. Statistiken per månad är därför mycket osäker.</p>
+          <p><b>Tolkning:</b> september är klart sämst, −6,4 % i snitt och upp bara 1 av 13 gånger. Därefter kommer mars (−4,0 %), juni (−4,0 %), december (−3,5 %) och augusti (−3,1 %). Bara april (+2,1 %), november (+1,6 %) och oktober (+0,3 %) är positiva i snitt. Där har medianen ändå varit negativ i oktober och november, så några stora uppgångar drar upp snittet. Det är ofta de snabba vändningarna i slutet av en björnmarknad, som hösten 2002 och 2022. December är starkast i bulltrend men svag i björntrend. Säsongsmönster hänger alltså mer på trenden än på kalendern.</p>
+        </div>
+        <div class="stats-text" data-lang="en">
+          <h3>Yearly performance</h3>
+          <p>Only the days when OMXSPI was <b>below</b> its 200-day moving average are counted. The bars show how much the index fell or rose on those days each year.</p>
+          <p>The blue line shows the result of owning the index only on bear days: about −97% since 1997. In a bull trend the same line was about +17,000%.</p>
+          <ul>
+            <li><b>Average −10.5% · median −6.8%:</b> bear days cost just over 10% a year on average. A few disaster years pull the average down, above all 2008 (about −42%) and 2002 (about −38%).</li>
+            <li><b>Hit ratio 7%:</b> in only 2 of 28 years were the bear days positive overall, and then by at most +6%.</li>
+            <li><b>Stdev 11.1%:</b> the years differ a lot. Some years it is a small dip of a few percent, others a crash.</li>
+            <li><b>The histogram</b> shows most years between −1% and −12%, with a long tail of very bad years on the left.</li>
+          </ul>
+          <h3>Average performance by month (the table)</h3>
+          <p>The columns mean the same as on the bull-trend tab. Note the <b>count</b>: each month has only 10–18 observations, because bear trends are rarer. The month-by-month figures are therefore very uncertain.</p>
+          <p><b>Reading:</b> September is clearly worst, −6.4% on average and up only 1 in 13 times. Then come March (−4.0%), June (−4.0%), December (−3.5%) and August (−3.1%). Only April (+2.1%), November (+1.6%) and October (+0.3%) are positive on average. Even there the median was negative in October and November, so a few big gains lift the average. These are often the sharp turns at the end of a bear market, as in autumn 2002 and 2022. December is the strongest month in a bull trend but weak in a bear trend. Seasonal patterns depend more on the trend than on the calendar.</p>
+        </div>
+      </div>
+
+      <!-- ===== BEAR: MONTH ===== -->
+      <div data-panel="bear-month" hidden>
+        <div class="stats-fig"><img src="stats/bear/month.webp" alt="OMXSPI monthly and day-of-month statistics in bear trend" loading="lazy"></div>
+        <div class="stats-text" data-lang="sv">
+          <h3>Månatlig utveckling</h3>
+          <ul>
+            <li><b>Snitt −1,98 % · median −1,91 %:</b> en vanlig björnmånad kostar knappt 2 %.</li>
+            <li><b>Hitratio 30 %:</b> bara 3 av 10 björnmånader slutar plus (72 % i bulltrend).</li>
+            <li><b>Stdev 5,6 %:</b> spridningen är 60 % större än i bulltrend (3,5 %). Björnmarknader är oroliga marknader.</li>
+            <li><b>Upp +4,14 % (max +13,0 %) · Ner −4,64 % (max −17,9 %):</b> både upp- och nedmånaderna är större än i bulltrend. Kraftiga uppgångar förekommer, men de mer än äts upp av att nedmånaderna är både fler och större.</li>
+            <li><b>Histogrammet</b> har tyngdpunkten kring −2 % till −3 % och en lång svans åt vänster.</li>
+          </ul>
+          <h3>Genomsnittlig utveckling per dag i månaden</h3>
+          <p><b>Tolkning:</b> nästan alla dagar 1–24 är negativa i snitt. Den 1:a är sämst (−0,59 %), alltså tvärtom mot bulltrend, där den 1:a var bäst. De sista dagarna i månaden (25–31) är däremot positiva. Den blå linjen bottnar runt den 24:e och vänder sedan upp. Det kan bero på månadsskiftesflöden, eller på att fonder och förvaltare köper inför månadsrapporterna. Med 60–80 observationer per dag och en daglig spridning på närmare 2 % är det ändå ett svagt mönster.</p>
+        </div>
+        <div class="stats-text" data-lang="en">
+          <h3>Monthly performance</h3>
+          <ul>
+            <li><b>Average −1.98% · median −1.91%:</b> a normal bear month costs just under 2%.</li>
+            <li><b>Hit ratio 30%:</b> only 3 in 10 bear months end positive (72% in a bull trend).</li>
+            <li><b>Stdev 5.6%:</b> 60% more spread than in a bull trend (3.5%). Bear markets are nervous markets.</li>
+            <li><b>Up +4.14% (max +13.0%) · Down −4.64% (max −17.9%):</b> both up and down months are bigger than in a bull trend. Strong rallies happen, but they are more than wiped out because down months are both more frequent and bigger.</li>
+            <li><b>The histogram</b> centres around −2% to −3%, with a long tail to the left.</li>
+          </ul>
+          <h3>Average performance by day of the month</h3>
+          <p><b>Reading:</b> almost every day from the 1st to the 24th is negative on average. The 1st is worst (−0.59%), the opposite of a bull trend, where the 1st was best. The last days of the month (25th–31st) are positive, though. The blue line bottoms around the 24th and then turns up. It may be month-end flows, or funds and managers buying ahead of month-end reports. With 60–80 observations per day and a daily spread of almost 2%, it is still a weak pattern.</p>
+        </div>
+      </div>
+
+      <!-- ===== BEAR: DAY ===== -->
+      <div data-panel="bear-day" hidden>
+        <div class="stats-fig"><img src="stats/bear/day.webp" alt="OMXSPI daily and weekday statistics in bear trend" loading="lazy"></div>
+        <div class="stats-text" data-lang="sv">
+          <h3>Daglig utveckling</h3>
+          <ul>
+            <li><b>Snitt −0,13 % · median −0,15 % per dag:</b> ungefär lika stort som i bulltrend, fast med omvänt tecken.</li>
+            <li><b>Hitratio 45 %:</b> fler minusdagar än plusdagar (56 % plusdagar i bulltrend).</li>
+            <li><b>Stdev 1,82 %:</b> nästan dubbelt så stora dagliga rörelser som i bulltrend (1,00 %).</li>
+            <li><b>Upp +1,35 % (max +10,4 %) · Ner −1,37 % (max −11,1 %):</b> de allra största uppgångsdagarna sker i björntrend, inte i bulltrend. Det är de typiska "bear market rallies": skarpa studsar som ofta inte håller.</li>
+          </ul>
+          <h3>Genomsnittlig utveckling per veckodag</h3>
+          <p><b>Tolkning:</b> alla veckodagar är negativa. Torsdag är sämst (−0,24 %), följd av fredag (−0,18 %) och måndag (−0,16 %). Tisdag är nästan noll (−0,01 %). Varje veckodag har cirka 460 observationer, totalt ungefär 2 300 björndagar, eller cirka 32 % av tiden sedan 1997. Fredag var bäst i bulltrend men hör till de sämsta i björntrend. Veckodagseffekter är alltså inte stabila och mest brus.</p>
+        </div>
+        <div class="stats-text" data-lang="en">
+          <h3>Daily performance</h3>
+          <ul>
+            <li><b>Average −0.13% · median −0.15% per day:</b> about the same size as in a bull trend, but with the opposite sign.</li>
+            <li><b>Hit ratio 45%:</b> more down days than up days (56% up days in a bull trend).</li>
+            <li><b>Stdev 1.82%:</b> daily moves are almost twice as large as in a bull trend (1.00%).</li>
+            <li><b>Up +1.35% (max +10.4%) · Down −1.37% (max −11.1%):</b> the very biggest up days happen in bear trends, not bull trends. These are the typical bear-market rallies: sharp bounces that often do not last.</li>
+          </ul>
+          <h3>Average performance by weekday</h3>
+          <p><b>Reading:</b> every weekday is negative. Thursday is worst (−0.24%), then Friday (−0.18%) and Monday (−0.16%). Tuesday is close to zero (−0.01%). Each weekday has about 460 observations, roughly 2,300 bear days in all, or about 32% of the time since 1997. Friday was best in a bull trend but is among the worst in a bear trend. Weekday effects are not stable and are mostly noise.</p>
+        </div>
+      </div>
+
+      <!-- ===== BEAR: COMMON (bull vs bear) ===== -->
+      <div data-panel-common="bear" hidden>
+        <div class="stats-text" data-lang="sv">
+          <h3>Bulltrend mot björntrend</h3>
+          <div class="tablewrap"><table class="cmp">
+            <thead><tr><th></th><th>Bulltrend (över MA200)</th><th>Björntrend (under MA200)</th></tr></thead>
+            <tbody>
+              <tr><td>Andel av tiden</td><td>ca 68 %</td><td>ca 32 %</td></tr>
+              <tr><td>Snitt per dag</td><td class="up">+0,11 %</td><td class="down">−0,13 %</td></tr>
+              <tr><td>Plusdagar</td><td>56 %</td><td>45 %</td></tr>
+              <tr><td>Daglig spridning (stdev)</td><td>1,00 %</td><td>1,82 %</td></tr>
+              <tr><td>Snitt per månad</td><td class="up">+1,95 %</td><td class="down">−1,98 %</td></tr>
+              <tr><td>Plusmånader</td><td>72 %</td><td>30 %</td></tr>
+              <tr><td>Snitt per år (bara de dagarna)</td><td class="up">+20,3 %</td><td class="down">−10,5 %</td></tr>
+              <tr><td>Sammanlagt sedan 1997 (blå linjen)</td><td class="up">ca +17 000 %</td><td class="down">ca −97 %</td></tr>
+              <tr><td>Bästa månad</td><td>December +4,1 %</td><td>April +2,1 %</td></tr>
+              <tr><td>Sämsta månad</td><td>Maj +0,2 %</td><td>September −6,4 %</td></tr>
+              <tr><td>Största dagsuppgång</td><td>+6,7 %</td><td>+10,4 %</td></tr>
+            </tbody>
+          </table></div>
+          <p><b>Slutsats:</b> nästan all avkastning på Stockholmsbörsen har kommit under bulltrend, och nästan alla stora förluster under björntrend. I björntrend är svängningarna dessutom nästan dubbelt så stora. Det är det klassiska argumentet för trendfilter som MA200. Kalendermönstren (månad, dag i månaden, veckodag) är små och byter ofta tecken mellan bull och björn. Trenden betyder mycket mer än kalendern.</p>
+          <p><b>Men:</b> statistiken förutsätter att man vet vilken trend det är samma dag. I praktiken byter man först dagen efter att kursen korsat MA200. Kring linjen blir det många falska signaler, och varje byte kostar courtage och spread. Den verkliga skillnaden mellan att följa trenden och att bara behålla index är därför betydligt mindre än de blå linjerna ger intryck av. Den största nyttan har historiskt varit att undvika de långa raserna, 2001–2002 och 2008.</p>
+          <p class="note">Nyckeltalen överst i bilderna är desamma som i bulltrendfliken och förklaras där. Bilderna är ögonblicksbilder från 12 november 2026.</p>
+        </div>
+        <div class="stats-text" data-lang="en">
+          <h3>Bull trend vs bear trend</h3>
+          <div class="tablewrap"><table class="cmp">
+            <thead><tr><th></th><th>Bull trend (above MA200)</th><th>Bear trend (below MA200)</th></tr></thead>
+            <tbody>
+              <tr><td>Share of the time</td><td>about 68%</td><td>about 32%</td></tr>
+              <tr><td>Average per day</td><td class="up">+0.11%</td><td class="down">−0.13%</td></tr>
+              <tr><td>Up days</td><td>56%</td><td>45%</td></tr>
+              <tr><td>Daily spread (stdev)</td><td>1.00%</td><td>1.82%</td></tr>
+              <tr><td>Average per month</td><td class="up">+1.95%</td><td class="down">−1.98%</td></tr>
+              <tr><td>Up months</td><td>72%</td><td>30%</td></tr>
+              <tr><td>Average per year (those days only)</td><td class="up">+20.3%</td><td class="down">−10.5%</td></tr>
+              <tr><td>Cumulative since 1997 (blue line)</td><td class="up">about +17,000%</td><td class="down">about −97%</td></tr>
+              <tr><td>Best month</td><td>December +4.1%</td><td>April +2.1%</td></tr>
+              <tr><td>Worst month</td><td>May +0.2%</td><td>September −6.4%</td></tr>
+              <tr><td>Biggest daily gain</td><td>+6.7%</td><td>+10.4%</td></tr>
+            </tbody>
+          </table></div>
+          <p><b>Conclusion:</b> almost all of the Stockholm exchange's return has come in bull trends, and almost all of the big losses in bear trends. In bear trends the swings are also nearly twice as large. That is the classic argument for a trend filter such as the MA200. The calendar patterns (month, day of month, weekday) are small and often flip sign between bull and bear. The trend matters far more than the calendar.</p>
+          <p><b>But:</b> the statistics assume you know the trend on the same day. In practice you switch the day after the price crosses the MA200. Near the line there are many false signals, and every switch costs brokerage and spread. The real gap between following the trend and simply holding the index is therefore much smaller than the blue lines suggest. Historically, the main benefit has been avoiding the long crashes of 2001–2002 and 2008.</p>
+          <p class="note">The key figures at the top of the pictures are the same as on the bull-trend tab and are explained there. The pictures are snapshots from 12 November 2026.</p>
+        </div>
+      </div>
+    </div>
+  </dialog>
 
   <footer>
     <span>⚠ For informational purposes only — not financial advice.</span>
@@ -838,6 +1160,26 @@
     try { localStorage.setItem('st-lang', LANG); } catch (e) { /* storage unavailable */ }
     if (DATA) renderAll(); else applyStatic();
   });
+
+  // ---------- statistics dialog (saved pictures, hidden until the button is pressed) ----------
+  (function statsDialog() {
+    const dlg = document.getElementById('stats-dlg'); if (!dlg) return;
+    let trend = 'bull', view = 'year';
+    function show() {
+      dlg.querySelectorAll('[data-trend-tab]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.trendTab === trend)));
+      dlg.querySelectorAll('[data-view-tab]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.viewTab === view)));
+      dlg.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== trend + '-' + view && p.dataset.panel !== trend; });
+      dlg.querySelectorAll('[data-panel-common]').forEach((p) => { p.hidden = p.dataset.panelCommon !== trend; });
+    }
+    dlg.querySelectorAll('[data-trend-tab]').forEach((b) => b.addEventListener('click', () => { trend = b.dataset.trendTab; show(); }));
+    dlg.querySelectorAll('[data-view-tab]').forEach((b) => b.addEventListener('click', () => { view = b.dataset.viewTab; show(); }));
+    dlg.querySelectorAll('.stats-fig img').forEach((img) => img.addEventListener('click', () => window.open(img.src, '_blank', 'noopener')));
+    const open = () => { show(); if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); };
+    document.getElementById('stats-open').addEventListener('click', open);
+    document.getElementById('stats-close').addEventListener('click', () => dlg.close());
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });   // click outside closes
+    if (['#statistik', '#stats'].includes(location.hash)) open();
+  })();
 
   fetch('data.json', { cache: 'no-cache' })
     .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
