@@ -78,6 +78,10 @@
     .warn { color: var(--ma); }
     .top-right { display: inline-flex; align-items: center; gap: 12px; }
     .lang-btn { background: none; border: 1px solid var(--border2); border-radius: 3px; padding: 3px; cursor: pointer; line-height: 0; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 23px; }
+    .leg-btn { background: none; border: 1px solid var(--border2); border-radius: 12px; padding: 3px 10px; color: var(--text); font: inherit; font-size: 12px; cursor: pointer; }
+    .leg-btn:hover { border-color: var(--muted2); }
+    .leg-btn.off { color: var(--muted); border-style: dashed; }
+    .leg-btn.off .sw { opacity: .25; }
     .lang-btn:hover { border-color: var(--muted2); }
     .lang-btn svg { display: block; border-radius: 1px; }
     /* bull-trend check */
@@ -133,7 +137,7 @@
     <div class="sec-head">
       <div>
         <h2>Swedish stock market by size</h2>
-        <p class="note">OMX Stockholm Large Cap, Mid Cap and Small Cap, plus OMXSPI for the whole exchange (price indices). All start at 100 at the beginning of the chosen period, so the lines show directly which part of the market has done best. Dashed lines: each index's 40-week moving average.</p>
+        <p class="note">OMX Stockholm Large Cap, Mid Cap and Small Cap, plus OMXSPI for the whole exchange (price indices). All start at 100 at the beginning of the chosen period, so the lines show directly which part of the market has done best. Dashed lines: each index's 40-week moving average. Click a name to hide or show its line.</p>
       </div>
       <div class="controls">
         <div class="seg" id="segma-seg" role="group" aria-label="Moving averages">
@@ -148,7 +152,7 @@
         </div>
       </div>
     </div>
-    <div class="legend" id="seg-legend" style="margin-top:12px"></div>
+    <div class="legend" id="seg-legend" style="margin-top:12px; gap:8px"></div>
     <div class="chart" id="c-seg" style="min-height:340px"></div>
     <div class="tablewrap">
       <table>
@@ -257,6 +261,7 @@
   let DATA = null, WEEKS = 0, SCALE = 'lin', SEGWEEKS = 0, SEGMA = false;
   const SEGCOL = { large: '#0099ff', mid: '#cc44ff', small: '#ff7a59', all: '#e8eef4' };
   let BWEEKS = 260, B = null;
+  const SEGHIDE = new Set();   // size-chart lines switched off by the user
   let LANG = 'en';
   const T = (en, sv) => LANG === 'sv' ? sv : en;
   const SVNUM = d3.formatLocale({ decimal: ',', thousands: '\u00a0', grouping: [3], currency: ['', ' kr'], minus: '\u2212' });
@@ -474,25 +479,37 @@
 
     // legend
     const lg = document.getElementById('seg-legend'); lg.replaceChildren();
-    series.forEach((s) => { const sp = el('span', null, null, lg); const sw = el('span', 'sw', null, sp); sw.style.background = SEGCOL[s.g.id]; sp.appendChild(document.createTextNode(s.g.name)); });
+    series.forEach((s) => {
+      const off = SEGHIDE.has(s.g.id);
+      const sp = el('button', 'leg-btn' + (off ? ' off' : ''), null, lg); sp.type = 'button';
+      sp.setAttribute('aria-pressed', String(!off));
+      sp.title = off ? T('Show ', 'Visa ') + s.g.name : T('Hide ', 'Dölj ') + s.g.name;
+      const sw = el('span', 'sw', null, sp); sw.style.background = SEGCOL[s.g.id]; sp.appendChild(document.createTextNode(s.g.name));
+      sp.addEventListener('click', () => {
+        if (off) SEGHIDE.delete(s.g.id);
+        else if (series.length - series.filter((q) => SEGHIDE.has(q.g.id)).length > 1) SEGHIDE.add(s.g.id);   // keep at least one line
+        drawSegments();
+      });
+    });
+    const vis = series.filter((s) => !SEGHIDE.has(s.g.id));
 
     // chart
     const holder = document.getElementById('c-seg'); holder.replaceChildren();
     const W = Math.max(300, holder.clientWidth), H = 340, mt = 12, mb = 24;
     const svg = d3.select(holder).append('svg').attr('width', '100%').attr('height', H).attr('viewBox', `0 0 ${W} ${H}`);
-    const all = series.flatMap((s) => s.rows.flatMap((r) => (SEGMA && r.ma != null) ? [r.v, r.ma] : [r.v]));
+    const all = vis.flatMap((s) => s.rows.flatMap((r) => (SEGMA && r.ma != null) ? [r.v, r.ma] : [r.v]));
     const y = d3.scaleLinear(d3.extent(all.concat([100])), [H - mb, mt]).nice();
     const yt = y.ticks(6);
-    const ends = series.map((s) => ({ s, last: s.rows[s.rows.length - 1] }));
+    const ends = vis.map((s) => ({ s, last: s.rows[s.rows.length - 1] }));
     const endTxt = (e) => e.s.g.name + ' ' + pct(e.last.v - 100);
-    const left = measure(svg, yt.map((v) => d3.format('.0f')(v))) + 8, right = measure(svg, ends.map(endTxt)) + 16;
-    const x = d3.scaleUtc(d3.extent(series[0].rows, (r) => r.date), [left, W - right]);
+    const left = measure(svg, yt.map((v) => nf('.0f')(v))) + 8, right = measure(svg, ends.map(endTxt)) + 16;
+    const x = d3.scaleUtc(d3.extent(vis[0].rows, (r) => r.date), [left, W - right]);
     svg.append('g').selectAll('line').data(yt).join('line').attr('x1', left).attr('x2', W - right).attr('y1', y).attr('y2', y).attr('stroke', (v) => v === 100 ? 'var(--muted)' : 'var(--border)');
     svg.append('g').selectAll('text').data(yt).join('text').attr('class', 'tick').attr('x', left - 6).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text((v) => nf('.0f')(v));
-    const span = (series[0].rows[series[0].rows.length - 1].date - series[0].rows[0].date) / (365.25 * 864e5);
+    const span = (vis[0].rows[vis[0].rows.length - 1].date - vis[0].rows[0].date) / (365.25 * 864e5);
     svg.append('g').selectAll('text').data(x.ticks(span <= 2.5 ? (W < 560 ? 3 : 6) : (W < 560 ? 4 : 8))).join('text').attr('class', 'tick').attr('x', x).attr('y', H - 6).attr('text-anchor', 'middle')
       .text(span <= 2.5 ? uf('%b %Y') : uf('%Y'));
-    series.forEach((s) => {
+    vis.forEach((s) => {
       if (SEGMA) svg.append('path').datum(s.rows).attr('d', d3.line().defined((r) => r.ma != null).x((r) => x(r.date)).y((r) => y(r.ma)))
         .attr('fill', 'none').attr('stroke', SEGCOL[s.g.id]).attr('stroke-width', 1.2).attr('stroke-dasharray', '4 3').attr('opacity', 0.8);
       svg.append('path').datum(s.rows).attr('d', d3.line().x((r) => x(r.date)).y((r) => y(r.v)))
@@ -509,14 +526,14 @@
     const tip = el('div', 'tip', null, holder); tip.hidden = true;
     const hover = svg.append('g').style('display', 'none');
     const rule = hover.append('line').attr('y1', mt).attr('y2', H - mb).attr('stroke', 'var(--ref)');
-    const dots = series.map((s) => hover.append('circle').attr('r', 3.5).attr('fill', SEGCOL[s.g.id]));
+    const dots = vis.map((s) => hover.append('circle').attr('r', 3.5).attr('fill', SEGCOL[s.g.id]));
     const bis = d3.bisector((r) => r.date).center;
     svg.append('rect').attr('x', left).attr('y', mt).attr('width', Math.max(0, W - right - left)).attr('height', H - mt - mb).attr('fill', 'transparent')
       .on('pointermove', (e) => {
-        const [px] = d3.pointer(e, svg.node()); const i = bis(series[0].rows, x.invert(px)); const d0 = series[0].rows[i]; if (!d0) return;
+        const [px] = d3.pointer(e, svg.node()); const i = bis(vis[0].rows, x.invert(px)); const d0 = vis[0].rows[i]; if (!d0) return;
         hover.style('display', null); rule.attr('x1', x(d0.date)).attr('x2', x(d0.date));
         tip.replaceChildren(); el('div', 'dim', T('Week of ', 'Vecka ') + fday(d0.date), tip);
-        series.forEach((s, j) => { const r = s.rows[i]; if (!r) return; dots[j].attr('cx', x(r.date)).attr('cy', y(r.v));
+        vis.forEach((s, j) => { const r = s.rows[i]; if (!r) return; dots[j].attr('cx', x(r.date)).attr('cy', y(r.v));
           const line = el('div', null, s.g.name + '  ' + f1(r.v) + '  (' + pct(r.v - 100) + ')', tip); line.style.color = SEGCOL[s.g.id]; });
         tip.hidden = false;
         const er = holder.getBoundingClientRect(), sr = svg.node().getBoundingClientRect(), sc = sr.width / W;
@@ -747,8 +764,8 @@
     'Six well-tested trend signals combined: four on the index price (trend, momentum, market structure) and two on market breadth. The more of them agree, the more robust the signal.':
       'Sex väl beprövade trendsignaler sammanvägda: fyra på indexets pris (trend, momentum, marknadsstruktur) och två på marknadsbredd. Ju fler som är överens, desto robustare signal.',
     'Swedish stock market by size': 'Stockholmsbörsen efter bolagsstorlek',
-    "OMX Stockholm Large Cap, Mid Cap and Small Cap, plus OMXSPI for the whole exchange (price indices). All start at 100 at the beginning of the chosen period, so the lines show directly which part of the market has done best. Dashed lines: each index's 40-week moving average.":
-      'OMX Stockholm Large Cap, Mid Cap och Small Cap samt OMXSPI för hela börsen (prisindex). Alla startar på 100 i början av vald period, så linjerna visar direkt vilken del av marknaden som gått bäst. Streckade linjer: varje index 40-veckors glidande medelvärde.',
+    "OMX Stockholm Large Cap, Mid Cap and Small Cap, plus OMXSPI for the whole exchange (price indices). All start at 100 at the beginning of the chosen period, so the lines show directly which part of the market has done best. Dashed lines: each index's 40-week moving average. Click a name to hide or show its line.":
+      'OMX Stockholm Large Cap, Mid Cap och Small Cap samt OMXSPI för hela börsen (prisindex). Alla startar på 100 i början av vald period, så linjerna visar direkt vilken del av marknaden som gått bäst. Streckade linjer: varje index 40-veckors glidande medelvärde. Klicka på ett namn för att dölja eller visa linjen.',
     'MA40 on': 'MA40 på', 'Off': 'Av', '1y': '1 år', '2y': '2 år', '3y': '3 år', '5y': '5 år', '10y': '10 år',
     'Since 2016': 'Sedan 2016', 'Since 2006': 'Sedan 2006', 'Index': 'Index', '4 weeks': '4 veckor', '52 weeks': '52 veckor',
     'vs MA40': 'mot MA40', 'Since': 'Sedan', 'Sector': 'Sektor',
