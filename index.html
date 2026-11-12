@@ -284,8 +284,9 @@
         <div class="seg" role="group">
           <button type="button" data-trend-tab="bull" aria-pressed="true"><span data-lang="sv">Bulltrend (över MA200)</span><span data-lang="en">Bull trend (above MA200)</span></button>
           <button type="button" data-trend-tab="bear" aria-pressed="false"><span data-lang="sv">Björntrend (under MA200)</span><span data-lang="en">Bear trend (below MA200)</span></button>
+          <button type="button" data-trend-tab="compare" aria-pressed="false"><span data-lang="sv">Jämförelse bull/björn</span><span data-lang="en">Bull vs bear</span></button>
         </div>
-        <div class="seg" role="group">
+        <div class="seg" role="group" id="view-tabs">
           <button type="button" data-view-tab="year" aria-pressed="true"><span data-lang="sv">År</span><span data-lang="en">Year</span></button>
           <button type="button" data-view-tab="month" aria-pressed="false"><span data-lang="sv">Månad</span><span data-lang="en">Month</span></button>
           <button type="button" data-view-tab="day" aria-pressed="false"><span data-lang="sv">Dag</span><span data-lang="en">Day</span></button>
@@ -522,10 +523,15 @@
         </div>
       </div>
 
-      <!-- ===== BEAR: COMMON (bull vs bear) ===== -->
       <div data-panel-common="bear" hidden>
+        <div class="stats-text" data-lang="sv"><p class="note">Nyckeltalen överst i bilderna är desamma som i bulltrendfliken och förklaras där. En sammanställning av skillnaderna finns under fliken <b>Jämförelse bull/björn</b>.</p></div>
+        <div class="stats-text" data-lang="en"><p class="note">The key figures at the top of the pictures are the same as on the bull-trend tab and are explained there. A summary of the differences is on the <b>Bull vs bear</b> tab.</p></div>
+      </div>
+
+      <!-- ===== COMPARISON (own tab) ===== -->
+      <div data-panel="compare" hidden>
         <div class="stats-text" data-lang="sv">
-          <h3>Bulltrend mot björntrend</h3>
+          <h3 style="margin-top:4px">Bulltrend mot björntrend</h3>
           <div class="tablewrap"><table class="cmp">
             <thead><tr><th></th><th>Bulltrend (över MA200)</th><th>Björntrend (under MA200)</th></tr></thead>
             <tbody>
@@ -544,10 +550,10 @@
           </table></div>
           <p><b>Slutsats:</b> nästan all avkastning på Stockholmsbörsen har kommit under bulltrend, och nästan alla stora förluster under björntrend. I björntrend är svängningarna dessutom nästan dubbelt så stora. Det är det klassiska argumentet för trendfilter som MA200. Kalendermönstren (månad, dag i månaden, veckodag) är små och byter ofta tecken mellan bull och björn. Trenden betyder mycket mer än kalendern.</p>
           <p><b>Men:</b> statistiken förutsätter att man vet vilken trend det är samma dag. I praktiken byter man först dagen efter att kursen korsat MA200. Kring linjen blir det många falska signaler, och varje byte kostar courtage och spread. Den verkliga skillnaden mellan att följa trenden och att bara behålla index är därför betydligt mindre än de blå linjerna ger intryck av. Den största nyttan har historiskt varit att undvika de långa raserna, 2001–2002 och 2008.</p>
-          <p class="note">Nyckeltalen överst i bilderna är desamma som i bulltrendfliken och förklaras där. Bilderna är ögonblicksbilder från 12 november 2026.</p>
+          <p class="note">Siffrorna kommer från bilderna i flikarna Bulltrend och Björntrend, ögonblicksbilder från 12 november 2026.</p>
         </div>
         <div class="stats-text" data-lang="en">
-          <h3>Bull trend vs bear trend</h3>
+          <h3 style="margin-top:4px">Bull trend vs bear trend</h3>
           <div class="tablewrap"><table class="cmp">
             <thead><tr><th></th><th>Bull trend (above MA200)</th><th>Bear trend (below MA200)</th></tr></thead>
             <tbody>
@@ -566,7 +572,7 @@
           </table></div>
           <p><b>Conclusion:</b> almost all of the Stockholm exchange's return has come in bull trends, and almost all of the big losses in bear trends. In bear trends the swings are also nearly twice as large. That is the classic argument for a trend filter such as the MA200. The calendar patterns (month, day of month, weekday) are small and often flip sign between bull and bear. The trend matters far more than the calendar.</p>
           <p><b>But:</b> the statistics assume you know the trend on the same day. In practice you switch the day after the price crosses the MA200. Near the line there are many false signals, and every switch costs brokerage and spread. The real gap between following the trend and simply holding the index is therefore much smaller than the blue lines suggest. Historically, the main benefit has been avoiding the long crashes of 2001–2002 and 2008.</p>
-          <p class="note">The key figures at the top of the pictures are the same as on the bull-trend tab and are explained there. The pictures are snapshots from 12 November 2026.</p>
+          <p class="note">The figures come from the pictures on the Bull trend and Bear trend tabs, snapshots from 12 November 2026.</p>
         </div>
       </div>
     </div>
@@ -1170,6 +1176,7 @@
       dlg.querySelectorAll('[data-view-tab]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.viewTab === view)));
       dlg.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== trend + '-' + view && p.dataset.panel !== trend; });
       dlg.querySelectorAll('[data-panel-common]').forEach((p) => { p.hidden = p.dataset.panelCommon !== trend; });
+      document.getElementById('view-tabs').style.display = trend === 'compare' ? 'none' : '';
     }
     dlg.querySelectorAll('[data-trend-tab]').forEach((b) => b.addEventListener('click', () => { trend = b.dataset.trendTab; show(); }));
     dlg.querySelectorAll('[data-view-tab]').forEach((b) => b.addEventListener('click', () => { view = b.dataset.viewTab; show(); }));
@@ -1178,7 +1185,8 @@
     document.getElementById('stats-open').addEventListener('click', open);
     document.getElementById('stats-close').addEventListener('click', () => dlg.close());
     dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });   // click outside closes
-    if (['#statistik', '#stats'].includes(location.hash)) open();
+    if (['#jamforelse', '#compare'].includes(location.hash)) trend = 'compare';
+    if (['#statistik', '#stats', '#jamforelse', '#compare'].includes(location.hash)) open();
   })();
 
   fetch('data.json', { cache: 'no-cache' })
