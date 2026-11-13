@@ -2,8 +2,12 @@ name: Update sector trends
 
 on:
   schedule:
-    # Fridays 17:45 UTC (18:45 CET / 19:45 CEST), after Stockholm close
-    - cron: "45 17 * * 5"
+    # Every weekday after the Stockholm close (17:30 CET / 17:30 CEST = 16:30 / 15:30 UTC).
+    # 17:13 UTC = 18:13 Swedish winter time, 19:13 summer time.
+    - cron: "13 17 * * 1-5"
+    # Back-up run later the same evening, in case GitHub skips the first one.
+    # If the first run already saved today's prices, this run changes nothing.
+    - cron: "37 21 * * 1-5"
   workflow_dispatch:
 
 permissions:
@@ -29,12 +33,12 @@ jobs:
 
       - name: Commit updated data
         run: |
-          if git diff --quiet -- data.json && git ls-files --error-unmatch data.json >/dev/null 2>&1; then
+          git add data.json daily_omxspi.json 2>/dev/null || git add data.json
+          if git diff --cached --quiet; then
             echo "No changes in data."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898733+github-actions[bot]@users.noreply.github.com"
-          git add data.json
-          git commit -m "sector trends: weekly data update $(date -u +%Y-%m-%d)"
+          git commit -m "sector trends: data update $(date -u +%Y-%m-%d)"
           git push
