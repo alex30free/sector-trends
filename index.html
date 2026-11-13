@@ -85,6 +85,9 @@
     html[lang="sv"] [data-lang="en"], html[lang="en"] [data-lang="sv"] { display: none !important; }
     .stats-btn { margin-top: 14px; background: var(--surface2); color: var(--text); border: 1px solid var(--border2); border-radius: 4px; padding: 8px 14px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; cursor: pointer; }
     .stats-btn:hover { border-color: var(--teal); color: var(--white); }
+    #learn-dlg { width: min(980px, 96vw); max-height: 92vh; margin: auto; background: var(--surface); color: var(--text); border: 1px solid var(--border2); border-radius: 8px; padding: 0; }
+    #learn-dlg::backdrop { background: rgba(0,0,0,.7); }
+    #learn-dlg a { color: var(--teal); }
     #stats-dlg { width: min(1180px, 96vw); max-height: 92vh; margin: auto; background: var(--surface); color: var(--text); border: 1px solid var(--border2); border-radius: 8px; padding: 0; }
     #stats-dlg::backdrop { background: rgba(0,0,0,.7); }
     .dlg-head { position: sticky; top: 0; z-index: 2; background: var(--surface); display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border2); }
@@ -224,6 +227,7 @@
       <tbody id="t-cx-fwd"></tbody>
     </table></div>
     <p class="summary-text" id="cx-text"></p>
+    <button type="button" class="stats-btn" id="learn-open"><span data-lang="sv">📘 Lär dig mer om RSI(2): regler, hur du läser grafen, index och aktier, läsning och video</span><span data-lang="en">📘 Learn more about RSI(2): rules, reading the chart, index vs stocks, reading and video</span></button>
     <details style="margin-top:12px">
       <summary><span data-lang="sv">Så räknas det</span><span data-lang="en">How it is calculated</span></summary>
       <dl data-lang="sv">
@@ -658,6 +662,140 @@
           <p><b>But:</b> the statistics assume you know the trend on the same day. In practice you switch the day after the price crosses the MA200. Near the line there are many false signals, and every switch costs brokerage and spread. The real gap between following the trend and simply holding the index is therefore much smaller than the blue lines suggest. Historically, the main benefit has been avoiding the long crashes of 2001–2002 and 2008.</p>
           <p class="note">The figures come from the pictures on the Bull trend and Bear trend tabs, snapshots from 12 November 2026.</p>
         </div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="learn-dlg" aria-labelledby="learn-title">
+    <div class="dlg-head">
+      <h2 id="learn-title"><span data-lang="sv">Lär dig mer om Connors RSI(2)</span><span data-lang="en">Learn more about Connors RSI(2)</span></h2>
+      <button type="button" class="dlg-close" id="learn-close" aria-label="Close">✕</button>
+    </div>
+    <div class="dlg-body">
+      <div class="stats-text" data-lang="sv">
+        <h3 style="margin-top:4px">Vad är RSI(2)?</h3>
+        <p>Det är vanlig RSI (Relative Strength Index, J. Welles Wilder 1978), samma formel som RSI(14), men räknad på bara <b>2 dagar</b>. Den slår därför snabbt mellan 0 och 100. Under 10 betyder att kursen fallit kraftigt två dagar i rad, över 90 att den stigit kraftigt. Larry Connors och Cesar Alvarez gjorde den känd i boken <i>Short Term Trading Strategies That Work</i> (2008). Där visade deras tester på amerikanska index och ETF:er att mycket korta perioder fungerade bättre än de vanliga 14 dagarna för att fånga studsar.</p>
+
+        <h3>Varför fungerar den?</h3>
+        <p>Tanken är <b>"köp rekyler, inte utbrott"</b>. När marknaden är i en upptrend är ett kraftigt tvådagarsfall oftast en tillfällig rekyl, där oroliga säljare pressar kursen för lågt, och inte början på ett ras. Kursen tenderar att studsa tillbaka mot sitt snitt inom några dagar.</p>
+        <p>Det fungerar bara i upptrend. I en björnmarknad kan ett översålt läge bli mycket mer översålt. Därför är trendfiltret med MA200 den viktigaste delen av regeln. Din egen statistik visar samma sak: de största fallen och de skarpaste studsarna kommer i björntrend.</p>
+
+        <h3>Reglerna</h3>
+        <ul>
+          <li><b>Trend:</b> köp bara när kursen ligger över sitt 200-dagars glidande medelvärde (MA200).</li>
+          <li><b>Köp:</b> vid stängning, när RSI(2) stänger under 10. Med gränsen 5 blir det färre affärer, och Connors fann att varje affär i snitt gav mer.</li>
+          <li><b>Sälj:</b> vid första stängning över 5-dagars medelvärdet (MA5). En affär varar oftast bara några dagar.</li>
+          <li><b>Stopp:</b> Connors egna tester visade att stop-loss försämrade resultatet för aktier och index. Många använder ändå ett nödstopp, eftersom en enskild affär kan bli mycket dyr.</li>
+          <li><b>Spegelvänt:</b> RSI(2) över 90 eller 95 under MA200 används av en del för blankning. För en vanlig investerare är det främst en signal att inte köpa i det läget.</li>
+        </ul>
+
+        <h3>Så läser du grafen, steg för steg</h3>
+        <ol style="margin:6px 0 6px 20px">
+          <li><b>Trenden först.</b> Ligger den blå kurslinjen över den gula MA200? Då är regeln aktiv. Ligger den under står regeln utanför, hur översålt det än ser ut.</li>
+          <li><b>Titta på RSI(2)-panelen.</b> När den turkosa linjen dyker under den streckade köpgränsen är marknaden översåld på kort sikt.</li>
+          <li><b>Gröna prickar</b> under kursen är dagar då regeln köpte, alltså översålt i upptrend. <b>Grå prickar</b> är samma signal i nedtrend, där regeln avstår. Jämför gärna vad som hände efter de gröna och efter de grå.</li>
+          <li><b>Utgången</b> är första dagen kursen stänger högre än snittet av de senaste fem dagarna. Håll muspekaren över en grön prick så ser du när affären stängdes och vad den gav.</li>
+          <li><b>Över 90</b> betyder kortsiktigt överköpt. I en upptrend är det sällan en säljsignal. Tabellen "Vad hände sedan?" visar hur det har varit på OMXSPI.</li>
+        </ol>
+        <p>Regeln säger inget om när en stor trend vänder. Den visar var en kortsiktig rekyl sannolikt är nära sin botten, medan den större trenden fortfarande pekar uppåt.</p>
+
+        <h3>Index jämfört med enskilda aktier</h3>
+        <ul>
+          <li><b>Index</b> är den tryggaste marknaden för regeln. Ett index kan inte gå i konkurs, och bolagsspecifika chocker sprids ut.</li>
+          <li><b>Enskilda aktier</b> ger fler signaler men större risker. Den största är <b>rapporter och nyheter</b>: en aktie som är "översåld" efter en vinstvarning har ofta en riktig orsak att falla, och det är inte en vanlig rekyl. Kontrollera alltid rapportdatum och varför aktien har fallit.</li>
+          <li><b>Välj likvida aktier</b>, som Large Cap och större Mid Cap. Vinsten per affär är liten, så courtage och spread väger tungt.</li>
+          <li><b>Många signaler samtidigt?</b> En vanlig metod är att välja den aktie som har lägst RSI(2) bland dem som ligger över MA200.</li>
+        </ul>
+
+        <h3>Vanliga fallgropar</h3>
+        <ul>
+          <li><b>Signalen kan komma för tidigt.</b> Kursen kan fortsätta ned några dagar efter köpet innan den vänder.</li>
+          <li><b>Små vinster, ibland stora förluster.</b> Hög träffsäkerhet betyder inte att varje förlust är liten. En enda dålig affär kan ta flera bra.</li>
+          <li><b>Få affärer.</b> Några dussin signaler per år på ett index är en liten statistisk grund. Resultat från ett land och en period gäller inte säkert framåt.</li>
+          <li><b>Avgifter och skatt</b> äter en stor del av en snittvinst på bara några tiondels procent per affär.</li>
+          <li><b>ConnorsRSI är inte samma sak.</b> ConnorsRSI är en senare indikator från Connors Research. Den är ett snitt av tre delar: en RSI(3) på kursen, en RSI på hur många dagar i rad kursen gått upp eller ned, och en rankning av senaste dagsrörelsen. Båda finns i TradingView, så välj rätt.</li>
+        </ul>
+
+        <h3>Inställningar i TradingView</h3>
+        <ul>
+          <li>Symbol <b>OMXSPI</b>, tidsram <b>1D</b> (dag).</li>
+          <li>Indikatorn <b>RSI</b>: RSI Length <b>2</b>, Source Close, Smoothing Type <b>None</b>. Under Style: Upper band <b>90</b>, Lower band <b>10</b> (eller 5).</li>
+          <li><b>Moving Average Simple</b> med Length <b>200</b> (trenden), och gärna en till med Length <b>5</b> (utgången).</li>
+          <li>Spara kombinationen via ikonen <b>Indicator templates</b> → <b>Save indicator template…</b>.</li>
+        </ul>
+
+        <h3>Läs och titta mer</h3>
+        <ul>
+          <li><b>Böcker:</b> <i>Short Term Trading Strategies That Work</i> (Connors och Alvarez, 2008) är huvudkällan. <i>How Markets Really Work</i> visar statistiken bakom. <i>Street Smarts</i> (Connors och Linda Raschke) är en klassisk samling handelsstrategier.</li>
+          <li><a href="https://chartschool.stockcharts.com/table-of-contents/trading-strategies-and-models/trading-strategies/rsi-2" target="_blank" rel="noopener">StockCharts ChartSchool: RSI(2)</a>: genomgång med diagramexempel och varianter. ChartSchool har överlag bra grundkurser i att läsa grafer.</li>
+          <li><a href="https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/connorsrsi" target="_blank" rel="noopener">StockCharts ChartSchool: ConnorsRSI</a>: om den andra indikatorn.</li>
+          <li><a href="https://quantifiedstrategies.substack.com/p/6-larry-connors-trading-strategies-e45" target="_blank" rel="noopener">Quantified Strategies: 6 Larry Connors trading strategies</a> (video).</li>
+          <li>På YouTube ger sökningen "RSI 2 strategy Larry Connors" många genomgångar. Välj de som visar backtester med siffror, och inte bara utvalda exempel.</li>
+        </ul>
+        <p class="note">Allmän information, inte personlig finansiell rådgivning. Historiska resultat är ingen garanti för framtiden.</p>
+      </div>
+
+      <div class="stats-text" data-lang="en">
+        <h3 style="margin-top:4px">What is RSI(2)?</h3>
+        <p>It is the ordinary RSI (Relative Strength Index, J. Welles Wilder 1978), the same formula as RSI(14), but calculated over only <b>2 days</b>. It therefore swings quickly between 0 and 100. Below 10 means the price fell hard two days in a row; above 90 that it rose hard. Larry Connors and Cesar Alvarez made it famous in <i>Short Term Trading Strategies That Work</i> (2008). Their tests on US indices and ETFs showed that very short periods worked better than the usual 14 days for catching bounces.</p>
+
+        <h3>Why does it work?</h3>
+        <p>The idea is <b>"buy pullbacks, not breakouts"</b>. When the market is in an uptrend, a sharp two-day drop is usually a temporary pullback, where nervous sellers push the price too low, not the start of a crash. The price tends to bounce back towards its average within a few days.</p>
+        <p>It only works in an uptrend. In a bear market an oversold reading can get far more oversold. That is why the MA200 trend filter is the most important part of the rule. Your own statistics show the same thing: the biggest drops and the sharpest bounces come in bear trends.</p>
+
+        <h3>The rules</h3>
+        <ul>
+          <li><b>Trend:</b> only buy when the price is above its 200-day moving average (MA200).</li>
+          <li><b>Buy:</b> at the close, when RSI(2) closes below 10. With a threshold of 5 there are fewer trades, and Connors found that each trade gained more on average.</li>
+          <li><b>Sell:</b> at the first close above the 5-day moving average (MA5). A trade usually lasts only a few days.</li>
+          <li><b>Stops:</b> Connors' own tests showed that stop-losses hurt the results for stocks and indices. Many still use an emergency stop, because a single trade can get very expensive.</li>
+          <li><b>Mirror image:</b> some use RSI(2) above 90 or 95 below the MA200 for short selling. For an ordinary investor it is mainly a signal not to buy in that situation.</li>
+        </ul>
+
+        <h3>How to read the chart, step by step</h3>
+        <ol style="margin:6px 0 6px 20px">
+          <li><b>Trend first.</b> Is the blue price line above the yellow MA200? Then the rule is active. If it is below, the rule stays out, however oversold it looks.</li>
+          <li><b>Look at the RSI(2) panel.</b> When the turquoise line dips below the dashed buy threshold, the market is oversold in the short term.</li>
+          <li><b>Green dots</b> under the price are days the rule bought: oversold in an uptrend. <b>Grey dots</b> are the same signal in a downtrend, where the rule stays out. Compare what happened after the green ones and after the grey ones.</li>
+          <li><b>The exit</b> is the first day the price closes above the average of the last five days. Hover over a green dot to see when the trade closed and what it gained.</li>
+          <li><b>Above 90</b> means overbought in the short term. In an uptrend it is rarely a sell signal. The "What happened next?" table shows how it has been on OMXSPI.</li>
+        </ol>
+        <p>The rule says nothing about when a big trend turns. It shows where a short-term pullback is probably close to its low, while the bigger trend still points up.</p>
+
+        <h3>Index vs single stocks</h3>
+        <ul>
+          <li><b>An index</b> is the safest market for the rule. An index cannot go bankrupt, and company-specific shocks are spread out.</li>
+          <li><b>Single stocks</b> give more signals but bigger risks. The biggest is <b>earnings and news</b>: a stock that is "oversold" after a profit warning often has a real reason to fall, and that is not a normal pullback. Always check report dates and why the stock has fallen.</li>
+          <li><b>Pick liquid stocks</b>, such as Large Cap and bigger Mid Cap. The gain per trade is small, so brokerage and spread weigh heavily.</li>
+          <li><b>Many signals at once?</b> A common method is to pick the stock with the lowest RSI(2) among those above the MA200.</li>
+        </ul>
+
+        <h3>Common pitfalls</h3>
+        <ul>
+          <li><b>The signal can come too early.</b> The price can keep falling for a few days after the buy before it turns.</li>
+          <li><b>Small gains, sometimes big losses.</b> A high hit rate does not mean every loss is small. One bad trade can wipe out several good ones.</li>
+          <li><b>Few trades.</b> A few dozen signals a year on an index is a small statistical base. Results from one country and one period do not necessarily hold going forward.</li>
+          <li><b>Costs and tax</b> eat a large share of an average gain of just a few tenths of a percent per trade.</li>
+          <li><b>ConnorsRSI is not the same thing.</b> ConnorsRSI is a later indicator from Connors Research. It averages three parts: an RSI(3) of the price, an RSI of how many days in a row the price has risen or fallen, and a ranking of the latest daily move. Both exist in TradingView, so pick the right one.</li>
+        </ul>
+
+        <h3>Settings in TradingView</h3>
+        <ul>
+          <li>Symbol <b>OMXSPI</b>, timeframe <b>1D</b> (daily).</li>
+          <li>The <b>RSI</b> indicator: RSI Length <b>2</b>, Source Close, Smoothing Type <b>None</b>. Under Style: Upper band <b>90</b>, Lower band <b>10</b> (or 5).</li>
+          <li><b>Moving Average Simple</b> with Length <b>200</b> (the trend), and preferably another with Length <b>5</b> (the exit).</li>
+          <li>Save the combination via the <b>Indicator templates</b> icon → <b>Save indicator template…</b>.</li>
+        </ul>
+
+        <h3>Read and watch more</h3>
+        <ul>
+          <li><b>Books:</b> <i>Short Term Trading Strategies That Work</i> (Connors and Alvarez, 2008) is the main source. <i>How Markets Really Work</i> shows the statistics behind it. <i>Street Smarts</i> (Connors and Linda Raschke) is a classic collection of trading strategies.</li>
+          <li><a href="https://chartschool.stockcharts.com/table-of-contents/trading-strategies-and-models/trading-strategies/rsi-2" target="_blank" rel="noopener">StockCharts ChartSchool: RSI(2)</a>: a walkthrough with chart examples and variants. ChartSchool has good basic courses in reading charts in general.</li>
+          <li><a href="https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/connorsrsi" target="_blank" rel="noopener">StockCharts ChartSchool: ConnorsRSI</a>: about the other indicator.</li>
+          <li><a href="https://quantifiedstrategies.substack.com/p/6-larry-connors-trading-strategies-e45" target="_blank" rel="noopener">Quantified Strategies: 6 Larry Connors trading strategies</a> (video).</li>
+          <li>On YouTube, the search "RSI 2 strategy Larry Connors" gives many walkthroughs. Pick the ones that show backtests with numbers, not just hand-picked examples.</li>
+        </ul>
+        <p class="note">General information, not personal financial advice. Past results are no guarantee of the future.</p>
       </div>
     </div>
   </dialog>
@@ -1454,6 +1592,14 @@
     if (['#statistik', '#stats', '#jamforelse', '#compare'].includes(location.hash)) open();
   })();
 
+  (function learnDialog() {
+    const dlg = document.getElementById('learn-dlg'); if (!dlg) return;
+    const open = () => { if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', ''); };
+    document.getElementById('learn-open').addEventListener('click', open);
+    document.getElementById('learn-close').addEventListener('click', () => dlg.close());
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+    if (['#rsi2', '#connors'].includes(location.hash)) open();
+  })();
   const dailyP = fetch('daily_omxspi.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null).catch(() => null);
   ['cthr-seg', 'crange-seg'].forEach((id) => document.querySelectorAll('#' + id + ' button').forEach((btn) => btn.addEventListener('click', () => {
     document.querySelectorAll('#' + id + ' button').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
