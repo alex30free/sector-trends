@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Weekly update for the StockLab sector trends page.
+Data update for the StockLab sector trends page (runs every weekday after the Stockholm close).
 
 For every stock in SECTORS it downloads daily prices from Yahoo Finance (since 2006),
 turns them into weekly closes (last trading day of each week), and builds one
@@ -153,6 +153,31 @@ def r(v):
     return None if v is None else round(v, 3 if v < 10 else 2)
 
 
+DAILY_OUT = os.path.normpath(os.path.join(HERE, "..", "daily_omxspi.json"))
+
+
+def save_daily(rows, src):
+    """Daily OMXSPI closes for the page's MA200 / RSI(2) section. Days already saved are kept,
+    so the history never shrinks if a source returns a shorter period."""
+    days, old = {}, {}
+    try:
+        with open(DAILY_OUT, encoding="utf-8") as f:
+            old = json.load(f)
+        days.update(zip(old.get("dates", []), old.get("close", [])))
+    except (OSError, ValueError):
+        pass
+    for d, c in rows:
+        days[d.isoformat()] = round(c, 2)
+    dates = sorted(days)
+    if dates == old.get("dates") and [days[d] for d in dates] == old.get("close"):
+        print("DAY  OMXSPI unchanged (%d days)" % len(dates))
+        return
+    with open(DAILY_OUT, "w", encoding="utf-8") as f:
+        json.dump({"symbol": "OMXSPI", "source": src.split(" (")[0], "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                   "dates": dates, "close": [days[d] for d in dates]}, f, separators=(",", ":"))
+    print("DAY  OMXSPI %d days %s -> %s" % (len(dates), dates[0], dates[-1]))
+
+
 def load_previous():
     try:
         with open(OUT, encoding="utf-8") as f:
@@ -233,6 +258,8 @@ def main():
         segments.append({"id": sid, "name": sname, "symbol": ysym.lstrip("^"), "close": [r(v) for v in merged]})
         n_ok = sum(1 for v in merged if v is not None)
         print("SEG  %-10s %4d weeks with data, source %s" % (sname, n_ok, src))
+        if sid == "all" and rows:
+            save_daily(rows, src)
 
     sectors, index, ignored = [], {}, []
     for sid, sname, members in SECTORS:
@@ -273,6 +300,10 @@ def main():
         "stocks": stocks,
         "ignored_moves": ignored,
     }
+    strip = lambda d: {k: v for k, v in d.items() if k != "updated"}
+    if prev and strip(json.loads(json.dumps(payload))) == strip(prev):
+        print("No new prices since the last run; data.json left unchanged")
+        return 0
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
     print("Wrote %s: %d sectors, %d stocks, %d weeks, data through %s" % (

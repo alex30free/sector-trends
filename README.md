@@ -5,7 +5,8 @@ Ten equal-weight sector indices built from Swedish stocks since 2006, each with 
 40-week moving average, plus a short summary of the current situation.
 
 - `index.html` – the page (GitHub Pages)
-- `data.json` – weekly data, rebuilt every Friday by `.github/workflows/sector-weekly.yml`
+- `data.json` – weekly data, rebuilt every weekday after the Stockholm close by `.github/workflows/sector-weekly.yml`
+- `daily_omxspi.json` – OMXSPI daily closes for the MA200 / RSI(2) section, updated by the same workflow
 - `scripts/sector_update.py` – downloads prices from Yahoo Finance and builds the indices.
   Edit the `SECTORS` list at the top to change sectors or stocks.
 

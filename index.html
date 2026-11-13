@@ -104,6 +104,8 @@
     .cmp td:first-child { font-family: 'IBM Plex Mono', monospace; color: var(--text); }
     .cmp td, .cmp th { white-space: normal; }
     .cmp tbody tr { cursor: default; }
+    .cx-h { font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 13px; color: var(--white); margin-top: 22px; }
+    #connors td:first-child { white-space: normal; min-width: 200px; }
     .stats-empty { padding: 40px 20px; text-align: center; color: var(--muted2); border: 1px dashed var(--border2); border-radius: 6px; }
     .lang-btn:hover { border-color: var(--muted2); }
     .lang-btn svg { display: block; border-radius: 1px; }
@@ -138,7 +140,7 @@
 
   <header>
     <h1>Swedish Sector<br><em>Trends</em></h1>
-    <p class="lede">A combined bull-trend check for the Stockholm exchange, market breadth, how Large, Mid and Small Cap are doing, plus ten home-made sector indices from Swedish stocks, each with its 40-week moving average (MA40, about 200 trading days). A sector above its MA40 is in an uptrend; below it, a downtrend. Updated automatically every Friday.</p>
+    <p class="lede">A combined bull-trend check for the Stockholm exchange, market breadth, how Large, Mid and Small Cap are doing, plus ten home-made sector indices from Swedish stocks, each with its 40-week moving average (MA40, about 200 trading days). A sector above its MA40 is in an uptrend; below it, a downtrend. Updated automatically every weekday after the Stockholm close.</p>
   </header>
 
   <section class="card" id="verdict">
@@ -155,6 +157,88 @@
     <ul class="checks" id="v-checks"></ul>
     <p class="hist" id="v-hist"></p>
     <button type="button" class="stats-btn" id="stats-open"><span data-lang="sv">📊 Statistik i bull- och björntrend</span><span data-lang="en">📊 Statistics in bull and bear trends</span></button>
+  </section>
+
+  <section class="card" id="connors" hidden>
+    <div class="sec-head">
+      <div>
+        <h2><span data-lang="sv">OMXSPI per dag · MA200 och Connors RSI(2)</span><span data-lang="en">OMXSPI daily · MA200 and Connors RSI(2)</span></h2>
+        <p class="note" data-lang="sv">Larry Connors regel: köp vid stängning när RSI(2) går under gränsen och indexet ligger över sitt MA200. Sälj vid första stängning över 5-dagars medelvärdet. Testet nedan kör regeln på OMXSPI:s egen historik.</p>
+        <p class="note" data-lang="en">Larry Connors' rule: buy at the close when RSI(2) drops below the threshold and the index is above its MA200. Sell at the first close above the 5-day average. The test below runs the rule on OMXSPI's own history.</p>
+      </div>
+      <div class="controls">
+        <div class="seg" id="cthr-seg" role="group" aria-label="RSI(2) threshold">
+          <button type="button" data-thr="5" aria-pressed="false">RSI &lt; 5</button>
+          <button type="button" data-thr="10" aria-pressed="true">RSI &lt; 10</button>
+        </div>
+        <div class="seg" id="crange-seg" role="group" aria-label="Period">
+          <button type="button" data-days="252" aria-pressed="false"><span data-lang="sv">1 år</span><span data-lang="en">1y</span></button>
+          <button type="button" data-days="756" aria-pressed="true"><span data-lang="sv">3 år</span><span data-lang="en">3y</span></button>
+          <button type="button" data-days="1260" aria-pressed="false"><span data-lang="sv">5 år</span><span data-lang="en">5y</span></button>
+          <button type="button" data-days="0" aria-pressed="false"><span data-lang="sv">Allt</span><span data-lang="en">All</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label">RSI(2)</div><div class="kpi-val" id="cx-rsi">–</div><div class="kpi-sub" id="cx-rsi-sub"></div></div>
+      <div class="kpi"><div class="kpi-label"><span data-lang="sv">Mot MA200</span><span data-lang="en">vs MA200</span></div><div class="kpi-val" id="cx-ma">–</div><div class="kpi-sub" id="cx-ma-sub"></div></div>
+      <div class="kpi"><div class="kpi-label"><span data-lang="sv">Connors-signal</span><span data-lang="en">Connors signal</span></div><div class="kpi-val" id="cx-sig">–</div><div class="kpi-sub" id="cx-sig-sub"></div></div>
+      <div class="kpi"><div class="kpi-label"><span data-lang="sv">Träffsäkerhet på OMXSPI</span><span data-lang="en">Hit rate on OMXSPI</span></div><div class="kpi-val" id="cx-hit">–</div><div class="kpi-sub" id="cx-hit-sub"></div></div>
+    </div>
+    <div class="legend" style="margin-top:16px">
+      <span><span class="sw" style="background:var(--line)"></span>OMXSPI</span>
+      <span><span class="sw" style="background:var(--ma)"></span>MA200</span>
+      <span><span class="sw" style="background:var(--up);height:8px;width:8px;border-radius:50%"></span><span data-lang="sv">Köpsignal (över MA200)</span><span data-lang="en">Buy signal (above MA200)</span></span>
+      <span><span class="sw" style="background:var(--muted2);height:8px;width:8px;border-radius:50%"></span><span data-lang="sv">Signal under MA200 (ingen affär)</span><span data-lang="en">Signal below MA200 (no trade)</span></span>
+    </div>
+    <div class="chart" id="c-cx" style="min-height:300px"></div>
+    <div class="legend"><span><span class="sw" style="background:var(--teal)"></span>RSI(2)</span><span><span class="sw" style="background:var(--muted2)"></span><span data-lang="sv">Gräns för köp och 90-linjen (överköpt)</span><span data-lang="en">Buy threshold and the 90 line (overbought)</span></span></div>
+    <div class="chart" id="c-rsi" style="min-height:150px"></div>
+
+    <h3 class="cx-h"><span data-lang="sv">Test av regeln: affärerna</span><span data-lang="en">Testing the rule: the trades</span></h3>
+    <div class="tablewrap"><table>
+      <thead><tr>
+        <th><span data-lang="sv">Regel</span><span data-lang="en">Rule</span></th>
+        <th><span data-lang="sv">Affärer</span><span data-lang="en">Trades</span></th>
+        <th><span data-lang="sv">Vinnare</span><span data-lang="en">Winners</span></th>
+        <th><span data-lang="sv">Snitt/affär</span><span data-lang="en">Avg/trade</span></th>
+        <th>Median</th>
+        <th><span data-lang="sv">Dagar i snitt</span><span data-lang="en">Avg days</span></th>
+        <th><span data-lang="sv">Sämsta</span><span data-lang="en">Worst</span></th>
+        <th><span data-lang="sv">Sammanlagt</span><span data-lang="en">Total</span></th>
+        <th><span data-lang="sv">Tid i marknaden</span><span data-lang="en">Time in market</span></th>
+      </tr></thead>
+      <tbody id="t-cx-trades"></tbody>
+    </table></div>
+
+    <h3 class="cx-h"><span data-lang="sv">Vad hände sedan? Indexets förändring efter signalen</span><span data-lang="en">What happened next? The index after the signal</span></h3>
+    <div class="tablewrap"><table>
+      <thead><tr>
+        <th><span data-lang="sv">Läge</span><span data-lang="en">Situation</span></th>
+        <th><span data-lang="sv">Dagar</span><span data-lang="en">Days</span></th>
+        <th><span data-lang="sv">Upp efter 5 dagar</span><span data-lang="en">Up after 5 days</span></th>
+        <th><span data-lang="sv">Snitt 5 dagar</span><span data-lang="en">Avg 5 days</span></th>
+        <th><span data-lang="sv">Upp efter 20 dagar</span><span data-lang="en">Up after 20 days</span></th>
+        <th><span data-lang="sv">Snitt 20 dagar</span><span data-lang="en">Avg 20 days</span></th>
+      </tr></thead>
+      <tbody id="t-cx-fwd"></tbody>
+    </table></div>
+    <p class="summary-text" id="cx-text"></p>
+    <details style="margin-top:12px">
+      <summary><span data-lang="sv">Så räknas det</span><span data-lang="en">How it is calculated</span></summary>
+      <dl data-lang="sv">
+        <dt>RSI(2)</dt><dd>RSI med 2 dagars period och Wilders utjämning, samma formel som vanlig RSI(14) men extremt kort. Den slår snabbt mellan 0 och 100. Under 10 betyder att indexet fallit kraftigt två dagar i rad, över 90 att det stigit kraftigt.</dd>
+        <dt><span>Affärerna</span></dt><dd>Köp till stängningskurs den dag RSI(2) stänger under gränsen medan indexet ligger över MA200 (200 handelsdagar). Sälj till stängningskurs första dagen indexet stänger över sitt 5-dagars medelvärde. Ingen ny affär öppnas medan en är öppen. Inga avgifter, ingen utdelning och ingen ränta på kassan räknas med. En affär som fortfarande är öppen räknas inte i statistiken.</dd>
+        <dt><span>Vad hände sedan</span></dt><dd>Indexets förändring 5 och 20 handelsdagar efter varje dag i läget. Dagar i rad med samma signal räknas var för sig, så perioderna överlappar. "Alla dagar" är jämförelsen: hur ofta indexet steg oavsett signal.</dd>
+        <dt><span>Data</span></dt><dd>OMXSPI:s dagliga stängningskurser, hämtade varje vardag efter börsens stängning tillsammans med resten av sidan. Historiken växer med tiden.</dd>
+      </dl>
+      <dl data-lang="en">
+        <dt>RSI(2)</dt><dd>RSI with a 2-day period and Wilder's smoothing, the same formula as the usual RSI(14) but extremely short. It swings quickly between 0 and 100. Below 10 means the index fell hard two days in a row; above 90 that it rose hard.</dd>
+        <dt>The trades</dt><dd>Buy at the close on the day RSI(2) closes below the threshold while the index is above its MA200 (200 trading days). Sell at the close on the first day the index closes above its 5-day average. No new trade opens while one is open. No costs, dividends or interest on cash are included. A trade that is still open is not counted.</dd>
+        <dt>What happened next</dt><dd>The index's change 5 and 20 trading days after each day in that situation. Consecutive days with the same signal count separately, so the periods overlap. "All days" is the benchmark: how often the index rose regardless of any signal.</dd>
+        <dt>Data</dt><dd>OMXSPI daily closing prices, downloaded every weekday after the close with the rest of the page. The history grows over time.</dd>
+      </dl>
+    </details>
   </section>
 
   <section class="card" id="segments">
@@ -262,7 +346,7 @@
       <dt>MA40</dt>
       <dd>The average of the last 40 weekly values, about 200 trading days. Above the MA40 = uptrend, below = downtrend. "Since" is the week the line last crossed its MA40.</dd>
       <dt>Large, Mid and Small Cap</dt>
-      <dd>Nasdaq's official OMX Stockholm Large Cap, Mid Cap and Small Cap price indices (weekly closes), from Nasdaq's website. Free history goes back 10 years (to November 2016); new weeks are added every Friday. In the chart all three are set to 100 at the start of the chosen period.</dd>
+      <dd>Nasdaq's official OMX Stockholm Large Cap, Mid Cap and Small Cap price indices (weekly closes), from Nasdaq's website. Free history goes back 10 years (to November 2016); the latest week is updated every weekday. In the chart all three are set to 100 at the start of the chosen period.</dd>
       <dt>OMXSPI</dt>
       <dd>OMX Stockholm All-Share (price index): every share on Nasdaq Stockholm, weighted by market value. Shown with Large, Mid and Small Cap and used for the bull-trend check. If it has no data, the check uses Large Cap instead.</dd>
       <dt>Bull-trend check</dt>
@@ -1082,12 +1166,192 @@
     }));
   }
 
+  // ---------- OMXSPI daily: MA200 and Connors RSI(2) ----------
+  let CX = null, CXDAYS = 756, CXTHR = 10;
+  function smaArr(c, n) {
+    const out = new Array(c.length).fill(null); let s = 0;
+    for (let i = 0; i < c.length; i++) { s += c[i]; if (i >= n) s -= c[i - n]; if (i >= n - 1) out[i] = s / n; }
+    return out;
+  }
+  function rsiWilder(c, n) {
+    const out = new Array(c.length).fill(null); let ag = 0, al = 0;
+    for (let i = 1; i < c.length; i++) {
+      const ch = c[i] - c[i - 1], g = Math.max(ch, 0), l = Math.max(-ch, 0);
+      if (i <= n) { ag += g; al += l; if (i < n) continue; ag /= n; al /= n; }
+      else { ag = (ag * (n - 1) + g) / n; al = (al * (n - 1) + l) / n; }
+      out[i] = al === 0 ? 100 : 100 - 100 / (1 + ag / al);
+    }
+    return out;
+  }
+  function prepCX(raw) {
+    const date = raw.dates.map((s) => new Date(s + 'T00:00:00Z'));
+    const c = raw.close.map(Number);
+    return { date, c, ma200: smaArr(c, 200), ma5: smaArr(c, 5), rsi: rsiWilder(c, 2), N: c.length, raw };
+  }
+  // Connors trades: buy at the close when cond(i), sell at the first close above MA5
+  function cxTrades(cond) {
+    const { c, ma5, N } = CX, trades = []; let open = null, first = null;
+    for (let i = 200; i < N; i++) {
+      if (first == null && CX.ma200[i] != null && CX.rsi[i] != null) first = i;
+      if (!cond(i)) continue;
+      let j = i + 1; while (j < N && !(ma5[j] != null && c[j] > ma5[j])) j++;
+      if (j >= N) { open = { i, ret: c[N - 1] / c[i] - 1, days: N - 1 - i }; break; }
+      trades.push({ i, j, ret: c[j] / c[i] - 1, days: j - i });
+      i = j;   // no new trade while one is open; the loop moves on from the day after the exit
+    }
+    const rets = trades.map((t) => t.ret), span = first == null ? 0 : N - first;
+    return {
+      trades, open, n: trades.length,
+      win: trades.length ? trades.filter((t) => t.ret > 0).length / trades.length * 100 : null,
+      avg: rets.length ? d3.mean(rets) * 100 : null, med: rets.length ? d3.median(rets) * 100 : null,
+      days: trades.length ? d3.mean(trades, (t) => t.days) : null, worst: rets.length ? d3.min(rets) * 100 : null,
+      total: rets.length ? (rets.reduce((p, r) => p * (1 + r), 1) - 1) * 100 : null,
+      tim: span ? d3.sum(trades, (t) => t.days) / span * 100 : null,
+    };
+  }
+  function cxForward(cond) {
+    const { c, N } = CX, out = { n: 0 };
+    [5, 20].forEach((h) => {
+      const r = []; for (let i = 200; i + h < N; i++) if (cond(i)) r.push(c[i + h] / c[i] - 1);
+      out['up' + h] = r.length ? r.filter((x) => x > 0).length / r.length * 100 : null;
+      out['avg' + h] = r.length ? d3.mean(r) * 100 : null;
+      if (h === 5) out.n = r.length;
+    });
+    return out;
+  }
+
+  function drawConnors() {
+    const sec = document.getElementById('connors');
+    if (!CX || CX.N < 260) { sec.hidden = true; return; }
+    sec.hidden = false;
+    const { c, ma200, rsi, date, N } = CX, K = N - 1;
+    const above = (i) => ma200[i] != null && c[i] > ma200[i];
+    const sigUp = (i) => rsi[i] != null && rsi[i] < CXTHR && above(i);
+    const sigDown = (i) => rsi[i] != null && rsi[i] < CXTHR && ma200[i] != null && !above(i);
+    const tUp = cxTrades(sigUp), tDown = cxTrades(sigDown);
+    const pctS = (v, d) => v == null ? '–' : (d ? f1(v) : nf('.0f')(v)) + T('%', ' %');
+
+    // KPIs
+    const set = (id, v, sub, cls) => { const e = document.getElementById(id); e.textContent = v; e.className = 'kpi-val' + (cls ? ' ' + cls : ''); document.getElementById(id + '-sub').textContent = sub; };
+    const r = rsi[K];
+    set('cx-rsi', r == null ? '–' : nf('.0f')(r), r == null ? '' : (r < CXTHR ? T('Oversold: in the buy zone', 'Översåld: i köpzonen') : r > 90 ? T('Overbought (above 90)', 'Överköpt (över 90)') : T('Neutral', 'Neutral')) + ' · ' + fday(date[K]), r == null ? '' : r < CXTHR ? 'up' : r > 90 ? 'warn' : '');
+    const dm = ma200[K] == null ? null : (c[K] / ma200[K] - 1) * 100;
+    set('cx-ma', pct(dm), dm == null ? '' : dm >= 0 ? T('Above: bull trend, the rule may buy', 'Över: bulltrend, regeln får köpa') : T('Below: bear trend, the rule stays out', 'Under: björntrend, regeln står utanför'), dm == null ? '' : dm >= 0 ? 'up' : 'down');
+    if (tUp.open) set('cx-sig', T('In a trade', 'I en affär'), T('Bought ', 'Köpt ') + fday(date[tUp.open.i]) + ' · ' + pct(tUp.open.ret * 100) + T(' so far', ' hittills'), tUp.open.ret >= 0 ? 'up' : 'down');
+    else {
+      const last = tUp.trades[tUp.trades.length - 1];
+      set('cx-sig', T('No signal', 'Ingen signal'), last ? T('Last trade: ', 'Senaste affär: ') + fday(date[last.i]) + ' (' + pct(last.ret * 100) + ')' : '', '');
+    }
+    set('cx-hit', pctS(tUp.win), tUp.n ? tUp.n + T(' trades · avg ', ' affärer · snitt ') + pct(tUp.avg) + T(' per trade', ' per affär') : '', tUp.win == null ? '' : tUp.win >= 60 ? 'up' : tUp.win >= 50 ? 'warn' : 'down');
+
+    // charts (shared x range)
+    let i0 = CXDAYS ? Math.max(200, N - CXDAYS) : 200;
+    const idx = d3.range(i0, N);
+    const holder = document.getElementById('c-cx'), hr = document.getElementById('c-rsi');
+    holder.replaceChildren(); hr.replaceChildren();
+    const W = Math.max(300, holder.clientWidth), H = 300, H2 = 150, mt = 10, mb = 24;
+    const svg = d3.select(holder).append('svg').attr('width', '100%').attr('height', H).attr('viewBox', `0 0 ${W} ${H}`);
+    const svg2 = d3.select(hr).append('svg').attr('width', '100%').attr('height', H2).attr('viewBox', `0 0 ${W} ${H2}`);
+    const ext = d3.extent(idx.flatMap((i) => ma200[i] == null ? [c[i]] : [c[i], ma200[i]]));
+    const y = d3.scaleLinear(ext, [H - mb, mt]).nice(), yt = y.ticks(5);
+    const y2 = d3.scaleLinear([0, 100], [H2 - mb, mt]);
+    const left = Math.max(measure(svg, yt.map((v) => nf(',.0f')(v))), measure(svg, ['100'])) + 8, right = measure(svg, [nf(',.0f')(c[K])]) + 14;
+    const x = d3.scaleUtc([date[i0], date[K]], [left, W - right]);
+    const span = (date[K] - date[i0]) / (365.25 * 864e5);
+    const xt = span <= 2 ? x.ticks(W < 560 ? 3 : 6) : x.ticks(d3.utcYear.every(Math.max(1, Math.ceil(span / (W < 560 ? 4 : 8))))), xf = span <= 2 ? uf('%b %Y') : uf('%Y');
+    [[svg, H], [svg2, H2]].forEach(([s, h]) => s.append('g').selectAll('text').data(xt).join('text').attr('class', 'tick').attr('x', x).attr('y', h - 6).attr('text-anchor', 'middle').text(xf));
+    svg.append('g').selectAll('line').data(yt).join('line').attr('x1', left).attr('x2', W - right).attr('y1', y).attr('y2', y).attr('stroke', 'var(--border)');
+    svg.append('g').selectAll('text').data(yt).join('text').attr('class', 'tick').attr('x', left - 6).attr('y', y).attr('dy', '0.32em').attr('text-anchor', 'end').text((v) => nf(',.0f')(v));
+    svg.append('path').datum(idx).attr('d', d3.line().defined((i) => ma200[i] != null).x((i) => x(date[i])).y((i) => y(ma200[i]))).attr('fill', 'none').attr('stroke', 'var(--ma)').attr('stroke-width', 1.6);
+    svg.append('path').datum(idx).attr('d', d3.line().x((i) => x(date[i])).y((i) => y(c[i]))).attr('fill', 'none').attr('stroke', 'var(--line)').attr('stroke-width', 1.3).attr('stroke-linejoin', 'round');
+    const entries = new Set(tUp.trades.map((t) => t.i).concat(tUp.open ? [tUp.open.i] : []));
+    svg.append('g').selectAll('circle').data(idx.filter((i) => sigDown(i))).join('circle').attr('cx', (i) => x(date[i])).attr('cy', (i) => y(c[i]) + 7).attr('r', 2.6).attr('fill', 'var(--muted2)');
+    svg.append('g').selectAll('circle').data(idx.filter((i) => entries.has(i))).join('circle').attr('cx', (i) => x(date[i])).attr('cy', (i) => y(c[i]) + 7).attr('r', 3.2).attr('fill', 'var(--up)');
+    svg.append('text').attr('class', 'tick').attr('x', x(date[K]) + 6).attr('y', y(c[K])).attr('dy', '0.32em').attr('fill', 'var(--white)').text(nf(',.0f')(c[K]));
+    // RSI panel
+    [0, 50, 100].forEach((v) => svg2.append('text').attr('class', 'tick').attr('x', left - 6).attr('y', y2(v)).attr('dy', '0.32em').attr('text-anchor', 'end').text(v));
+    [CXTHR, 90].forEach((v) => svg2.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y2(v)).attr('y2', y2(v)).attr('stroke', 'var(--muted2)').attr('stroke-dasharray', '4 3'));
+    svg2.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y2(50)).attr('y2', y2(50)).attr('stroke', 'var(--border)');
+    svg2.append('path').datum(idx).attr('d', d3.line().defined((i) => rsi[i] != null).x((i) => x(date[i])).y((i) => y2(rsi[i]))).attr('fill', 'none').attr('stroke', 'var(--teal)').attr('stroke-width', 1).attr('opacity', 0.85);
+    // shared tooltip
+    const tip = el('div', 'tip', null, holder); tip.hidden = true;
+    const rules = [svg, svg2].map((s, k) => s.append('line').attr('y1', mt).attr('y2', (k ? H2 : H) - mb).attr('stroke', 'var(--ref)').style('display', 'none'));
+    const bis = d3.bisector((i) => date[i]).center;
+    [[svg, H], [svg2, H2]].forEach(([s, h]) => s.append('rect').attr('x', left).attr('y', mt).attr('width', Math.max(0, W - right - left)).attr('height', h - mt - mb).attr('fill', 'transparent')
+      .on('pointermove', (e) => {
+        const [px] = d3.pointer(e, s.node()); const i = idx[bis(idx, x.invert(px))]; if (i == null) return;
+        rules.forEach((rl) => rl.style('display', null).attr('x1', x(date[i])).attr('x2', x(date[i])));
+        tip.replaceChildren(); el('div', 'dim', fday(date[i]), tip);
+        el('div', null, 'OMXSPI ' + nf(',.2f')(c[i]), tip);
+        if (ma200[i] != null) el('div', null, 'MA200 ' + nf(',.2f')(ma200[i]) + ' (' + pct((c[i] / ma200[i] - 1) * 100) + ')', tip);
+        if (rsi[i] != null) el('div', null, 'RSI(2) ' + nf('.1f')(rsi[i]), tip);
+        if (entries.has(i)) { const t = tUp.trades.find((q) => q.i === i); el('div', 'up', t ? T('Buy → sold ', 'Köp → såld ') + fday(date[t.j]) + ' ' + pct(t.ret * 100) : T('Buy (still open)', 'Köp (fortfarande öppen)'), tip); }
+        tip.hidden = false;
+        const er = holder.getBoundingClientRect(), sr = svg.node().getBoundingClientRect(), sc = sr.width / W;
+        const px2 = x(date[i]) * sc + sr.left - er.left;
+        let lft = px2 + 12; if (lft + tip.offsetWidth > holder.clientWidth) lft = px2 - tip.offsetWidth - 12;
+        tip.style.left = Math.max(0, lft) + 'px'; tip.style.top = '8px';
+      })
+      .on('pointerleave', () => { rules.forEach((rl) => rl.style('display', 'none')); tip.hidden = true; }));
+
+    // trades table
+    const tb = document.getElementById('t-cx-trades'); tb.replaceChildren();
+    [[T('RSI(2) < ' + CXTHR + ', above MA200 (Connors)', 'RSI(2) < ' + CXTHR + ', över MA200 (Connors)'), tUp], [T('RSI(2) < ' + CXTHR + ', below MA200 (no trend filter)', 'RSI(2) < ' + CXTHR + ', under MA200 (utan trendfilter)'), tDown]].forEach(([name, s]) => {
+      const tr = el('tr', null, null, tb); tr.style.cursor = 'default';
+      el('td', null, name, tr); el('td', null, String(s.n), tr);
+      el('td', s.win == null ? null : s.win >= 50 ? 'up' : 'down', pctS(s.win), tr);
+      el('td', s.avg == null ? null : s.avg >= 0 ? 'up' : 'down', pct(s.avg), tr);
+      el('td', s.med == null ? null : s.med >= 0 ? 'up' : 'down', pct(s.med), tr);
+      el('td', null, s.days == null ? '–' : f1(s.days), tr);
+      el('td', 'down', pct(s.worst), tr);
+      el('td', s.total == null ? null : s.total >= 0 ? 'up' : 'down', pct(s.total), tr);
+      el('td', null, pctS(s.tim), tr);
+    });
+    // forward table
+    const all = (i) => true, ob = (i) => rsi[i] != null && rsi[i] > 90 && above(i);
+    const rows = [
+      [T('RSI(2) < ' + CXTHR + ', above MA200', 'RSI(2) < ' + CXTHR + ', över MA200'), cxForward(sigUp)],
+      [T('RSI(2) < ' + CXTHR + ', below MA200', 'RSI(2) < ' + CXTHR + ', under MA200'), cxForward(sigDown)],
+      [T('RSI(2) > 90, above MA200 (overbought)', 'RSI(2) > 90, över MA200 (överköpt)'), cxForward(ob)],
+      [T('All days (benchmark)', 'Alla dagar (jämförelse)'), cxForward(all)],
+    ];
+    const tf = document.getElementById('t-cx-fwd'); tf.replaceChildren();
+    rows.forEach(([name, s], k) => {
+      const tr = el('tr', null, null, tf); tr.style.cursor = 'default'; if (k === 3) tr.style.color = 'var(--muted2)';
+      el('td', null, name, tr); el('td', null, String(s.n), tr);
+      el('td', null, pctS(s.up5), tr); el('td', s.avg5 == null ? null : s.avg5 >= 0 ? 'up' : 'down', pct(s.avg5), tr);
+      el('td', null, pctS(s.up20), tr); el('td', s.avg20 == null ? null : s.avg20 >= 0 ? 'up' : 'down', pct(s.avg20), tr);
+    });
+
+    // conclusion, built from the numbers
+    const p = document.getElementById('cx-text'); p.replaceChildren();
+    const t = (s) => p.appendChild(document.createTextNode(s)), b = (s, cls) => el('b', cls || null, s, p);
+    const [fu, fd, fo, fa] = rows.map((q) => q[1]);
+    const yrs = f1((date[K] - date[200]) / (365.25 * 864e5));
+    if (!tUp.n) { t(T('No trades yet in the data.', 'Inga affärer i datan än.')); return; }
+    t(T('Does it hold on OMXSPI? Over ' + yrs + ' years the rule made ', 'Stämmer det på OMXSPI? Under ' + yrs + ' år gav regeln '));
+    b(tUp.n + T(' trades', ' affärer')); t(T(', of which ', ', varav '));
+    b(pctS(tUp.win), tUp.win >= 60 ? 'up' : 'down'); t(T(' were winners, with ', ' var vinnare, med '));
+    b(pct(tUp.avg), tUp.avg >= 0 ? 'up' : 'down'); t(T(' on average per trade over about ' + f1(tUp.days) + ' days. Connors\' own tests on S&P 500 gave roughly 65–75% winners. ', ' i snitt per affär på ungefär ' + f1(tUp.days) + ' dagar. Connors egna tester på S&P 500 gav ungefär 65–75 % vinnare. '));
+    t(tUp.win >= 65 ? T('So the pattern holds on the Stockholm exchange as well. ', 'Mönstret håller alltså även på Stockholmsbörsen. ')
+      : tUp.win >= 55 ? T('So the pattern holds partly on the Stockholm exchange, a little weaker than in his tests. ', 'Mönstret håller alltså delvis på Stockholmsbörsen, något svagare än i hans tester. ')
+      : T('So the pattern is weak on the Stockholm exchange in this period. ', 'Mönstret är alltså svagt på Stockholmsbörsen under den här perioden. '));
+    t(T('The worst trade was ', 'Den sämsta affären var ')); b(pct(tUp.worst), 'down'); t(T(', a reminder that a small average gain can hide large single losses. ', ', en påminnelse om att en liten snittvinst kan dölja stora enskilda förluster. '));
+    if (fu.up5 != null && fa.up5 != null) { t(T('Five days after a signal the index was higher ', 'Fem dagar efter en signal låg indexet högre ')); b(pctS(fu.up5)); t(T(' of the time, against ', ' av gångerna, mot ')); b(pctS(fa.up5)); t(T(' for all days. ', ' för alla dagar. ')); }
+    if (tDown.n) { t(T('Without the trend filter (below MA200) the hit rate was ', 'Utan trendfiltret (under MA200) var träffsäkerheten ')); b(pctS(tDown.win), tDown.win >= 60 ? 'up' : 'down'); t(T(' and the worst trade ', ' och den sämsta affären ')); b(pct(tDown.worst), 'down'); t(T('. ', '. ')); }
+    if (fo.up5 != null && fa.up5 != null) {
+      t(T('Overbought (RSI(2) above 90) in a bull trend: up after 5 days ', 'Överköpt (RSI(2) över 90) i bulltrend: upp efter 5 dagar ')); b(pctS(fo.up5)); t(T(' of the time', ' av gångerna'));
+      t(fo.up5 >= fa.up5 - 5 ? T(', about as often as normal, so overbought was not a sell signal.', ', ungefär lika ofta som vanligt, så överköpt var ingen säljsignal.') : T(', less often than normal, a slight sign of a pause.', ', mer sällan än vanligt, ett svagt tecken på en paus.'));
+    }
+    t(T(' Before costs and tax; there are few trades, so treat the figures as indicative.', ' Före avgifter och skatt. Affärerna är få, så se siffrorna som en fingervisning.'));
+  }
+
   // ---------- language: static texts are matched by their English wording ----------
   const SV = {
     'Sector Trends · Sweden': 'Sektortrender · Sverige', 'Loading…': 'Laddar…',
     'Swedish Sector': 'Svenska sektor-', 'Trends': 'trender',
-    'A combined bull-trend check for the Stockholm exchange, market breadth, how Large, Mid and Small Cap are doing, plus ten home-made sector indices from Swedish stocks, each with its 40-week moving average (MA40, about 200 trading days). A sector above its MA40 is in an uptrend; below it, a downtrend. Updated automatically every Friday.':
-      'En samlad bulltrendkontroll för Stockholmsbörsen, marknadsbredd, hur Large, Mid och Small Cap går, samt tio egna sektorindex av svenska aktier, vart och ett med sitt 40-veckors glidande medelvärde (MA40, ungefär 200 handelsdagar). En sektor över sitt MA40 är i upptrend, under det i nedtrend. Uppdateras automatiskt varje fredag.',
+    'A combined bull-trend check for the Stockholm exchange, market breadth, how Large, Mid and Small Cap are doing, plus ten home-made sector indices from Swedish stocks, each with its 40-week moving average (MA40, about 200 trading days). A sector above its MA40 is in an uptrend; below it, a downtrend. Updated automatically every weekday after the Stockholm close.':
+      'En samlad bulltrendkontroll för Stockholmsbörsen, marknadsbredd, hur Large, Mid och Small Cap går, samt tio egna sektorindex av svenska aktier, vart och ett med sitt 40-veckors glidande medelvärde (MA40, ungefär 200 handelsdagar). En sektor över sitt MA40 är i upptrend, under det i nedtrend. Uppdateras automatiskt varje vardag efter börsens stängning.',
     'Bull-trend check ·': 'Bulltrendkontroll ·',
     'Six well-tested trend signals combined: four on the index price (trend, momentum, market structure) and two on market breadth. The more of them agree, the more robust the signal.':
       'Sex väl beprövade trendsignaler sammanvägda: fyra på indexets pris (trend, momentum, marknadsstruktur) och två på marknadsbredd. Ju fler som är överens, desto robustare signal.',
@@ -1118,8 +1382,8 @@
     'The average of the last 40 weekly values, about 200 trading days. Above the MA40 = uptrend, below = downtrend. "Since" is the week the line last crossed its MA40.':
       'Medelvärdet av de senaste 40 veckovärdena, ungefär 200 handelsdagar. Över MA40 = upptrend, under = nedtrend. "Sedan" är veckan då linjen senast korsade sitt MA40.',
     'Large, Mid and Small Cap': 'Large, Mid och Small Cap',
-    "Nasdaq's official OMX Stockholm Large Cap, Mid Cap and Small Cap price indices (weekly closes), from Nasdaq's website. Free history goes back 10 years (to November 2016); new weeks are added every Friday. In the chart all three are set to 100 at the start of the chosen period.":
-      'Nasdaqs officiella prisindex OMX Stockholm Large Cap, Mid Cap och Small Cap (veckostängning), från Nasdaqs webbplats. Gratis historik finns 10 år bakåt (till november 2016), och nya veckor läggs till varje fredag. I grafen sätts alla till 100 i början av vald period.',
+    "Nasdaq's official OMX Stockholm Large Cap, Mid Cap and Small Cap price indices (weekly closes), from Nasdaq's website. Free history goes back 10 years (to November 2016); the latest week is updated every weekday. In the chart all three are set to 100 at the start of the chosen period.":
+      'Nasdaqs officiella prisindex OMX Stockholm Large Cap, Mid Cap och Small Cap (veckostängning), från Nasdaqs webbplats. Gratis historik finns 10 år bakåt (till november 2016), och den senaste veckan uppdateras varje vardag. I grafen sätts alla till 100 i början av vald period.',
     'OMX Stockholm All-Share (price index): every share on Nasdaq Stockholm, weighted by market value. Shown with Large, Mid and Small Cap and used for the bull-trend check. If it has no data, the check uses Large Cap instead.':
       'OMX Stockholm All-Share (prisindex): alla aktier på Nasdaq Stockholm, viktade efter börsvärde. Visas tillsammans med Large, Mid och Small Cap och används i bulltrendkontrollen. Saknas data används Large Cap i stället.',
     'Bull-trend check': 'Bulltrendkontroll',
@@ -1158,6 +1422,7 @@
     DATA.sectors.forEach((x) => { x.name = LANG === 'sv' ? (SECSV[x.id] || x.name_en) : x.name_en; });
     try { drawVerdict(); } catch (err) { document.getElementById('verdict').hidden = true; console.error(err); }
     drawSegments(); drawBreadth(); drawSummary(); drawSectors();
+    try { drawConnors(); } catch (err) { document.getElementById('connors').hidden = true; console.error(err); }
   }
   try { const saved = localStorage.getItem('st-lang'); LANG = saved || ((navigator.language || '').toLowerCase().startsWith('sv') ? 'sv' : 'en'); } catch (e) { LANG = 'en'; }
   applyStatic();
@@ -1189,6 +1454,13 @@
     if (['#statistik', '#stats', '#jamforelse', '#compare'].includes(location.hash)) open();
   })();
 
+  const dailyP = fetch('daily_omxspi.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null).catch(() => null);
+  ['cthr-seg', 'crange-seg'].forEach((id) => document.querySelectorAll('#' + id + ' button').forEach((btn) => btn.addEventListener('click', () => {
+    document.querySelectorAll('#' + id + ' button').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
+    if (id === 'cthr-seg') CXTHR = Number(btn.dataset.thr); else CXDAYS = Number(btn.dataset.days);
+    if (CX) drawConnors();
+  })));
+
   fetch('data.json', { cache: 'no-cache' })
     .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then((d) => {
@@ -1196,6 +1468,7 @@
       DATA.sectors.forEach((x) => { x.name_en = x.name; });
       computeAll(); B = computeBreadth();
       renderAll();
+      dailyP.then((raw) => { if (raw && raw.dates && raw.dates.length) { CX = prepCX(raw); try { drawConnors(); } catch (err) { console.error(err); } } });
       document.querySelectorAll('#brange-seg button').forEach((btn) => btn.addEventListener('click', () => {
         document.querySelectorAll('#brange-seg button').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
         BWEEKS = Number(btn.dataset.weeks); drawBreadth();
@@ -1207,7 +1480,7 @@
         if (id === 'segrange-seg') SEGWEEKS = Number(btn.dataset.weeks); else SEGMA = btn.dataset.ma === '1';
         drawSegments();
       })));
-      let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawCharts(); drawSegments(); drawBreadth(); }, 150); });
+      let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { drawCharts(); drawSegments(); drawBreadth(); if (CX) drawConnors(); }, 150); });
     })
     .catch((e) => {
       document.getElementById('updated').textContent = T('Could not load data', 'Kunde inte ladda data');
