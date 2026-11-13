@@ -2,9 +2,10 @@ name: Update sector trends
 
 on:
   schedule:
-    # Every weekday after the Stockholm close (17:30 CET / 17:30 CEST = 16:30 / 15:30 UTC).
-    # 17:13 UTC = 18:13 Swedish winter time, 19:13 summer time.
-    - cron: "13 17 * * 1-5"
+    # Every weekday (Friday included) a little before 19:00 Swedish time, after the 17:30 close.
+    # GitHub's clock is UTC: 17:53 UTC = 18:53 Swedish winter time (CET), 19:53 summer time (CEST).
+    # Not on the hour on purpose: GitHub skips scheduled runs more often at :00 when it is busy.
+    - cron: "53 17 * * 1-5"
     # Back-up run later the same evening, in case GitHub skips the first one.
     # If the first run already saved today's prices, this run changes nothing.
     - cron: "37 21 * * 1-5"
