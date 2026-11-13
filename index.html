@@ -171,8 +171,12 @@
       </div>
       <div class="controls">
         <div class="seg" id="cthr-seg" role="group" aria-label="RSI(2) threshold">
-          <button type="button" data-thr="5" aria-pressed="false">RSI &lt; 5</button>
-          <button type="button" data-thr="10" aria-pressed="true">RSI &lt; 10</button>
+          <button type="button" data-thr="5" aria-pressed="false">RSI 5 / 95</button>
+          <button type="button" data-thr="10" aria-pressed="true">RSI 10 / 90</button>
+        </div>
+        <div class="seg" id="cob-seg" role="group" aria-label="Overbought dots">
+          <button type="button" data-ob="1" aria-pressed="true"><span data-lang="sv">Överköpt: visa</span><span data-lang="en">Overbought: show</span></button>
+          <button type="button" data-ob="0" aria-pressed="false"><span data-lang="sv">Dölj</span><span data-lang="en">Hide</span></button>
         </div>
         <div class="seg" id="crange-seg" role="group" aria-label="Period">
           <button type="button" data-days="252" aria-pressed="false"><span data-lang="sv">1 år</span><span data-lang="en">1y</span></button>
@@ -192,10 +196,12 @@
       <span><span class="sw" style="background:var(--line)"></span>OMXSPI</span>
       <span><span class="sw" style="background:var(--ma)"></span>MA200</span>
       <span><span class="sw" style="background:var(--up);height:8px;width:8px;border-radius:50%"></span><span data-lang="sv">Köpsignal (över MA200)</span><span data-lang="en">Buy signal (above MA200)</span></span>
-      <span><span class="sw" style="background:var(--muted2);height:8px;width:8px;border-radius:50%"></span><span data-lang="sv">Signal under MA200 (ingen affär)</span><span data-lang="en">Signal below MA200 (no trade)</span></span>
+      <span><span class="sw" style="background:var(--muted2);height:8px;width:8px;border-radius:50%"></span><span data-lang="sv">Översålt under MA200 (ingen affär)</span><span data-lang="en">Oversold below MA200 (no trade)</span></span>
+      <span class="ob-leg"><span class="sw" style="background:transparent;border:2px solid #ff9f43;height:9px;width:9px;border-radius:50%;vertical-align:1px"></span><span data-lang="sv">Överköpt över MA200 (oftast ingen säljsignal)</span><span data-lang="en">Overbought above MA200 (usually no sell signal)</span></span>
+      <span class="ob-leg"><span class="sw" style="background:var(--down);height:8px;width:8px;border-radius:50%"></span><span data-lang="sv">Överköpt under MA200 (Connors blankningssignal)</span><span data-lang="en">Overbought below MA200 (Connors short signal)</span></span>
     </div>
     <div class="chart" id="c-cx" style="min-height:300px"></div>
-    <div class="legend"><span><span class="sw" style="background:var(--teal)"></span>RSI(2)</span><span><span class="sw" style="background:var(--muted2)"></span><span data-lang="sv">Gräns för köp och 90-linjen (överköpt)</span><span data-lang="en">Buy threshold and the 90 line (overbought)</span></span></div>
+    <div class="legend"><span><span class="sw" style="background:var(--teal)"></span>RSI(2)</span><span><span class="sw" style="background:var(--muted2)"></span><span data-lang="sv">Gränser för översålt och överköpt</span><span data-lang="en">Oversold and overbought thresholds</span></span></div>
     <div class="chart" id="c-rsi" style="min-height:150px"></div>
 
     <h3 class="cx-h"><span data-lang="sv">Test av regeln: affärerna</span><span data-lang="en">Testing the rule: the trades</span></h3>
@@ -232,13 +238,13 @@
       <summary><span data-lang="sv">Så räknas det</span><span data-lang="en">How it is calculated</span></summary>
       <dl data-lang="sv">
         <dt>RSI(2)</dt><dd>RSI med 2 dagars period och Wilders utjämning, samma formel som vanlig RSI(14) men extremt kort. Den slår snabbt mellan 0 och 100. Under 10 betyder att indexet fallit kraftigt två dagar i rad, över 90 att det stigit kraftigt.</dd>
-        <dt><span>Affärerna</span></dt><dd>Köp till stängningskurs den dag RSI(2) stänger under gränsen medan indexet ligger över MA200 (200 handelsdagar). Sälj till stängningskurs första dagen indexet stänger över sitt 5-dagars medelvärde. Ingen ny affär öppnas medan en är öppen. Inga avgifter, ingen utdelning och ingen ränta på kassan räknas med. En affär som fortfarande är öppen räknas inte i statistiken.</dd>
+        <dt><span>Affärerna</span></dt><dd>Köp till stängningskurs den dag RSI(2) stänger under gränsen medan indexet ligger över MA200 (200 handelsdagar). Sälj till stängningskurs första dagen indexet stänger över sitt 5-dagars medelvärde. Ingen ny affär öppnas medan en är öppen. Inga avgifter, ingen utdelning och ingen ränta på kassan räknas med. En affär som fortfarande är öppen räknas inte i statistiken. Blankningsraden är spegelvänd: sälj vid stängning när RSI(2) stänger över 90 (95) under MA200, köp tillbaka vid första stängning under MA5. Överköpt-gränsen följer köpgränsen: 10 ger 90 och 5 ger 95.</dd>
         <dt><span>Vad hände sedan</span></dt><dd>Indexets förändring 5 och 20 handelsdagar efter varje dag i läget. Dagar i rad med samma signal räknas var för sig, så perioderna överlappar. "Alla dagar" är jämförelsen: hur ofta indexet steg oavsett signal.</dd>
         <dt><span>Data</span></dt><dd>OMXSPI:s dagliga stängningskurser, hämtade varje vardag efter börsens stängning tillsammans med resten av sidan. Historiken växer med tiden.</dd>
       </dl>
       <dl data-lang="en">
         <dt>RSI(2)</dt><dd>RSI with a 2-day period and Wilder's smoothing, the same formula as the usual RSI(14) but extremely short. It swings quickly between 0 and 100. Below 10 means the index fell hard two days in a row; above 90 that it rose hard.</dd>
-        <dt>The trades</dt><dd>Buy at the close on the day RSI(2) closes below the threshold while the index is above its MA200 (200 trading days). Sell at the close on the first day the index closes above its 5-day average. No new trade opens while one is open. No costs, dividends or interest on cash are included. A trade that is still open is not counted.</dd>
+        <dt>The trades</dt><dd>Buy at the close on the day RSI(2) closes below the threshold while the index is above its MA200 (200 trading days). Sell at the close on the first day the index closes above its 5-day average. No new trade opens while one is open. No costs, dividends or interest on cash are included. A trade that is still open is not counted. The short row is the mirror image: sell at the close when RSI(2) closes above 90 (95) below the MA200, buy back at the first close below the MA5. The overbought level follows the buy threshold: 10 gives 90 and 5 gives 95.</dd>
         <dt>What happened next</dt><dd>The index's change 5 and 20 trading days after each day in that situation. Consecutive days with the same signal count separately, so the periods overlap. "All days" is the benchmark: how often the index rose regardless of any signal.</dd>
         <dt>Data</dt><dd>OMXSPI daily closing prices, downloaded every weekday after the close with the rest of the page. The history grows over time.</dd>
       </dl>
@@ -694,6 +700,7 @@
           <li><b>Trenden först.</b> Ligger den blå kurslinjen över den gula MA200? Då är regeln aktiv. Ligger den under står regeln utanför, hur översålt det än ser ut.</li>
           <li><b>Titta på RSI(2)-panelen.</b> När den turkosa linjen dyker under den streckade köpgränsen är marknaden översåld på kort sikt.</li>
           <li><b>Gröna prickar</b> under kursen är dagar då regeln köpte, alltså översålt i upptrend. <b>Grå prickar</b> är samma signal i nedtrend, där regeln avstår. Jämför gärna vad som hände efter de gröna och efter de grå.</li>
+          <li><b>Överköpt</b> visas ovanför kursen, på första dagen RSI(2) går över 90 (95 med gränsen 5). <b>Orange ringar</b> är överköpt i upptrend, där regeln inte säljer, eftersom en stark marknad ofta fortsätter upp. <b>Röda prickar</b> är överköpt i nedtrend, Connors blankningssignal: man blankar till stängning och köper tillbaka vid första stängning under MA5. Knappen "Överköpt: visa / Dölj" tar bort dem om grafen blir rörig.</li>
           <li><b>Utgången</b> är första dagen kursen stänger högre än snittet av de senaste fem dagarna. Håll muspekaren över en grön prick så ser du när affären stängdes och vad den gav.</li>
           <li><b>Över 90</b> betyder kortsiktigt överköpt. I en upptrend är det sällan en säljsignal. Tabellen "Vad hände sedan?" visar hur det har varit på OMXSPI.</li>
         </ol>
@@ -757,6 +764,7 @@
           <li><b>Trend first.</b> Is the blue price line above the yellow MA200? Then the rule is active. If it is below, the rule stays out, however oversold it looks.</li>
           <li><b>Look at the RSI(2) panel.</b> When the turquoise line dips below the dashed buy threshold, the market is oversold in the short term.</li>
           <li><b>Green dots</b> under the price are days the rule bought: oversold in an uptrend. <b>Grey dots</b> are the same signal in a downtrend, where the rule stays out. Compare what happened after the green ones and after the grey ones.</li>
+          <li><b>Overbought</b> is shown above the price, on the first day RSI(2) goes above 90 (95 with the threshold 5). <b>Orange rings</b> are overbought in an uptrend, where the rule does not sell, because a strong market often keeps rising. <b>Red dots</b> are overbought in a downtrend, Connors' short signal: you short at the close and buy back at the first close below the MA5. The "Overbought: show / Hide" button removes them if the chart gets cluttered.</li>
           <li><b>The exit</b> is the first day the price closes above the average of the last five days. Hover over a green dot to see when the trade closed and what it gained.</li>
           <li><b>Above 90</b> means overbought in the short term. In an uptrend it is rarely a sell signal. The "What happened next?" table shows how it has been on OMXSPI.</li>
         </ol>
@@ -1305,7 +1313,8 @@
   }
 
   // ---------- OMXSPI daily: MA200 and Connors RSI(2) ----------
-  let CX = null, CXDAYS = 756, CXTHR = 10;
+  let CX = null, CXDAYS = 756, CXTHR = 10, CXOB = true;
+  const OBCOL = '#ff9f43';
   function smaArr(c, n) {
     const out = new Array(c.length).fill(null); let s = 0;
     for (let i = 0; i < c.length; i++) { s += c[i]; if (i >= n) s -= c[i - n]; if (i >= n - 1) out[i] = s / n; }
@@ -1327,14 +1336,16 @@
     return { date, c, ma200: smaArr(c, 200), ma5: smaArr(c, 5), rsi: rsiWilder(c, 2), N: c.length, raw };
   }
   // Connors trades: buy at the close when cond(i), sell at the first close above MA5
-  function cxTrades(cond) {
+  function cxTrades(cond, short) {
     const { c, ma5, N } = CX, trades = []; let open = null, first = null;
+    const exitOk = (j) => ma5[j] != null && (short ? c[j] < ma5[j] : c[j] > ma5[j]);
+    const gain = (i, j) => short ? 1 - c[j] / c[i] : c[j] / c[i] - 1;
     for (let i = 200; i < N; i++) {
       if (first == null && CX.ma200[i] != null && CX.rsi[i] != null) first = i;
       if (!cond(i)) continue;
-      let j = i + 1; while (j < N && !(ma5[j] != null && c[j] > ma5[j])) j++;
-      if (j >= N) { open = { i, ret: c[N - 1] / c[i] - 1, days: N - 1 - i }; break; }
-      trades.push({ i, j, ret: c[j] / c[i] - 1, days: j - i });
+      let j = i + 1; while (j < N && !exitOk(j)) j++;
+      if (j >= N) { open = { i, ret: gain(i, N - 1), days: N - 1 - i }; break; }
+      trades.push({ i, j, ret: gain(i, j), days: j - i });
       i = j;   // no new trade while one is open; the loop moves on from the day after the exit
     }
     const rets = trades.map((t) => t.ret), span = first == null ? 0 : N - first;
@@ -1366,13 +1377,18 @@
     const above = (i) => ma200[i] != null && c[i] > ma200[i];
     const sigUp = (i) => rsi[i] != null && rsi[i] < CXTHR && above(i);
     const sigDown = (i) => rsi[i] != null && rsi[i] < CXTHR && ma200[i] != null && !above(i);
-    const tUp = cxTrades(sigUp), tDown = cxTrades(sigDown);
+    const OBT = CXTHR === 5 ? 95 : 90;   // mirror of the buy threshold
+    const obUp = (i) => rsi[i] != null && rsi[i] > OBT && above(i);
+    const obDown = (i) => rsi[i] != null && rsi[i] > OBT && ma200[i] != null && !above(i);
+    const obStart = (i) => rsi[i] != null && rsi[i] > OBT && !(rsi[i - 1] != null && rsi[i - 1] > OBT);   // first day in the zone
+    const tUp = cxTrades(sigUp), tDown = cxTrades(sigDown), tShort = cxTrades(obDown, true);
+    document.querySelectorAll('#connors .ob-leg').forEach((e) => { e.style.display = CXOB ? '' : 'none'; });
     const pctS = (v, d) => v == null ? '–' : (d ? f1(v) : nf('.0f')(v)) + T('%', ' %');
 
     // KPIs
     const set = (id, v, sub, cls) => { const e = document.getElementById(id); e.textContent = v; e.className = 'kpi-val' + (cls ? ' ' + cls : ''); document.getElementById(id + '-sub').textContent = sub; };
     const r = rsi[K];
-    set('cx-rsi', r == null ? '–' : nf('.0f')(r), r == null ? '' : (r < CXTHR ? T('Oversold: in the buy zone', 'Översåld: i köpzonen') : r > 90 ? T('Overbought (above 90)', 'Överköpt (över 90)') : T('Neutral', 'Neutral')) + ' · ' + fday(date[K]), r == null ? '' : r < CXTHR ? 'up' : r > 90 ? 'warn' : '');
+    set('cx-rsi', r == null ? '–' : nf('.0f')(r), r == null ? '' : (r < CXTHR ? T('Oversold: in the buy zone', 'Översåld: i köpzonen') : r > OBT ? T('Overbought (above ' + OBT + ')', 'Överköpt (över ' + OBT + ')') : T('Neutral', 'Neutral')) + ' · ' + fday(date[K]), r == null ? '' : r < CXTHR ? 'up' : r > OBT ? 'warn' : '');
     const dm = ma200[K] == null ? null : (c[K] / ma200[K] - 1) * 100;
     set('cx-ma', pct(dm), dm == null ? '' : dm >= 0 ? T('Above: bull trend, the rule may buy', 'Över: bulltrend, regeln får köpa') : T('Below: bear trend, the rule stays out', 'Under: björntrend, regeln står utanför'), dm == null ? '' : dm >= 0 ? 'up' : 'down');
     if (tUp.open) set('cx-sig', T('In a trade', 'I en affär'), T('Bought ', 'Köpt ') + fday(date[tUp.open.i]) + ' · ' + pct(tUp.open.ret * 100) + T(' so far', ' hittills'), tUp.open.ret >= 0 ? 'up' : 'down');
@@ -1405,10 +1421,14 @@
     const entries = new Set(tUp.trades.map((t) => t.i).concat(tUp.open ? [tUp.open.i] : []));
     svg.append('g').selectAll('circle').data(idx.filter((i) => sigDown(i))).join('circle').attr('cx', (i) => x(date[i])).attr('cy', (i) => y(c[i]) + 7).attr('r', 2.6).attr('fill', 'var(--muted2)');
     svg.append('g').selectAll('circle').data(idx.filter((i) => entries.has(i))).join('circle').attr('cx', (i) => x(date[i])).attr('cy', (i) => y(c[i]) + 7).attr('r', 3.2).attr('fill', 'var(--up)');
+    if (CXOB) {
+      svg.append('g').selectAll('circle').data(idx.filter((i) => obStart(i) && above(i))).join('circle').attr('cx', (i) => x(date[i])).attr('cy', (i) => y(c[i]) - 8).attr('r', 3).attr('fill', 'none').attr('stroke', OBCOL).attr('stroke-width', 1.6);
+      svg.append('g').selectAll('circle').data(idx.filter((i) => obStart(i) && obDown(i))).join('circle').attr('cx', (i) => x(date[i])).attr('cy', (i) => y(c[i]) - 8).attr('r', 3.2).attr('fill', 'var(--down)');
+    }
     svg.append('text').attr('class', 'tick').attr('x', x(date[K]) + 6).attr('y', y(c[K])).attr('dy', '0.32em').attr('fill', 'var(--white)').text(nf(',.0f')(c[K]));
     // RSI panel
     [0, 50, 100].forEach((v) => svg2.append('text').attr('class', 'tick').attr('x', left - 6).attr('y', y2(v)).attr('dy', '0.32em').attr('text-anchor', 'end').text(v));
-    [CXTHR, 90].forEach((v) => svg2.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y2(v)).attr('y2', y2(v)).attr('stroke', 'var(--muted2)').attr('stroke-dasharray', '4 3'));
+    [CXTHR, OBT].forEach((v) => svg2.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y2(v)).attr('y2', y2(v)).attr('stroke', 'var(--muted2)').attr('stroke-dasharray', '4 3'));
     svg2.append('line').attr('x1', left).attr('x2', W - right).attr('y1', y2(50)).attr('y2', y2(50)).attr('stroke', 'var(--border)');
     svg2.append('path').datum(idx).attr('d', d3.line().defined((i) => rsi[i] != null).x((i) => x(date[i])).y((i) => y2(rsi[i]))).attr('fill', 'none').attr('stroke', 'var(--teal)').attr('stroke-width', 1).attr('opacity', 0.85);
     // shared tooltip
@@ -1423,6 +1443,7 @@
         el('div', null, 'OMXSPI ' + nf(',.2f')(c[i]), tip);
         if (ma200[i] != null) el('div', null, 'MA200 ' + nf(',.2f')(ma200[i]) + ' (' + pct((c[i] / ma200[i] - 1) * 100) + ')', tip);
         if (rsi[i] != null) el('div', null, 'RSI(2) ' + nf('.1f')(rsi[i]), tip);
+        if (rsi[i] != null && rsi[i] > OBT) el('div', above(i) ? 'warn' : 'down', above(i) ? T('Overbought in an uptrend', 'Överköpt i upptrend') : T('Overbought in a downtrend (short signal)', 'Överköpt i nedtrend (blankningssignal)'), tip);
         if (entries.has(i)) { const t = tUp.trades.find((q) => q.i === i); el('div', 'up', t ? T('Buy → sold ', 'Köp → såld ') + fday(date[t.j]) + ' ' + pct(t.ret * 100) : T('Buy (still open)', 'Köp (fortfarande öppen)'), tip); }
         tip.hidden = false;
         const er = holder.getBoundingClientRect(), sr = svg.node().getBoundingClientRect(), sc = sr.width / W;
@@ -1434,7 +1455,7 @@
 
     // trades table
     const tb = document.getElementById('t-cx-trades'); tb.replaceChildren();
-    [[T('RSI(2) < ' + CXTHR + ', above MA200 (Connors)', 'RSI(2) < ' + CXTHR + ', över MA200 (Connors)'), tUp], [T('RSI(2) < ' + CXTHR + ', below MA200 (no trend filter)', 'RSI(2) < ' + CXTHR + ', under MA200 (utan trendfilter)'), tDown]].forEach(([name, s]) => {
+    [[T('RSI(2) < ' + CXTHR + ', above MA200 (Connors)', 'RSI(2) < ' + CXTHR + ', över MA200 (Connors)'), tUp], [T('RSI(2) < ' + CXTHR + ', below MA200 (no trend filter)', 'RSI(2) < ' + CXTHR + ', under MA200 (utan trendfilter)'), tDown], [T('RSI(2) > ' + OBT + ', below MA200: short (Connors)', 'RSI(2) > ' + OBT + ', under MA200: blankning (Connors)'), tShort]].forEach(([name, s]) => {
       const tr = el('tr', null, null, tb); tr.style.cursor = 'default';
       el('td', null, name, tr); el('td', null, String(s.n), tr);
       el('td', s.win == null ? null : s.win >= 50 ? 'up' : 'down', pctS(s.win), tr);
@@ -1446,16 +1467,17 @@
       el('td', null, pctS(s.tim), tr);
     });
     // forward table
-    const all = (i) => true, ob = (i) => rsi[i] != null && rsi[i] > 90 && above(i);
+    const all = (i) => true;
     const rows = [
       [T('RSI(2) < ' + CXTHR + ', above MA200', 'RSI(2) < ' + CXTHR + ', över MA200'), cxForward(sigUp)],
       [T('RSI(2) < ' + CXTHR + ', below MA200', 'RSI(2) < ' + CXTHR + ', under MA200'), cxForward(sigDown)],
-      [T('RSI(2) > 90, above MA200 (overbought)', 'RSI(2) > 90, över MA200 (överköpt)'), cxForward(ob)],
+      [T('RSI(2) > ' + OBT + ', above MA200 (overbought)', 'RSI(2) > ' + OBT + ', över MA200 (överköpt)'), cxForward(obUp)],
+      [T('RSI(2) > ' + OBT + ', below MA200 (overbought)', 'RSI(2) > ' + OBT + ', under MA200 (överköpt)'), cxForward(obDown)],
       [T('All days (benchmark)', 'Alla dagar (jämförelse)'), cxForward(all)],
     ];
     const tf = document.getElementById('t-cx-fwd'); tf.replaceChildren();
     rows.forEach(([name, s], k) => {
-      const tr = el('tr', null, null, tf); tr.style.cursor = 'default'; if (k === 3) tr.style.color = 'var(--muted2)';
+      const tr = el('tr', null, null, tf); tr.style.cursor = 'default'; if (k === rows.length - 1) tr.style.color = 'var(--muted2)';
       el('td', null, name, tr); el('td', null, String(s.n), tr);
       el('td', null, pctS(s.up5), tr); el('td', s.avg5 == null ? null : s.avg5 >= 0 ? 'up' : 'down', pct(s.avg5), tr);
       el('td', null, pctS(s.up20), tr); el('td', s.avg20 == null ? null : s.avg20 >= 0 ? 'up' : 'down', pct(s.avg20), tr);
@@ -1464,7 +1486,7 @@
     // conclusion, built from the numbers
     const p = document.getElementById('cx-text'); p.replaceChildren();
     const t = (s) => p.appendChild(document.createTextNode(s)), b = (s, cls) => el('b', cls || null, s, p);
-    const [fu, fd, fo, fa] = rows.map((q) => q[1]);
+    const [fu, fd, fo, fod, fa] = rows.map((q) => q[1]);
     const yrs = f1((date[K] - date[200]) / (365.25 * 864e5));
     if (!tUp.n) { t(T('No trades yet in the data.', 'Inga affärer i datan än.')); return; }
     t(T('Does it hold on OMXSPI? Over ' + yrs + ' years the rule made ', 'Stämmer det på OMXSPI? Under ' + yrs + ' år gav regeln '));
@@ -1478,8 +1500,12 @@
     if (fu.up5 != null && fa.up5 != null) { t(T('Five days after a signal the index was higher ', 'Fem dagar efter en signal låg indexet högre ')); b(pctS(fu.up5)); t(T(' of the time, against ', ' av gångerna, mot ')); b(pctS(fa.up5)); t(T(' for all days. ', ' för alla dagar. ')); }
     if (tDown.n) { t(T('Without the trend filter (below MA200) the hit rate was ', 'Utan trendfiltret (under MA200) var träffsäkerheten ')); b(pctS(tDown.win), tDown.win >= 60 ? 'up' : 'down'); t(T(' and the worst trade ', ' och den sämsta affären ')); b(pct(tDown.worst), 'down'); t(T('. ', '. ')); }
     if (fo.up5 != null && fa.up5 != null) {
-      t(T('Overbought (RSI(2) above 90) in a bull trend: up after 5 days ', 'Överköpt (RSI(2) över 90) i bulltrend: upp efter 5 dagar ')); b(pctS(fo.up5)); t(T(' of the time', ' av gångerna'));
+      t(T('Overbought (RSI(2) above ' + OBT + ') in a bull trend: up after 5 days ', 'Överköpt (RSI(2) över ' + OBT + ') i bulltrend: upp efter 5 dagar ')); b(pctS(fo.up5)); t(T(' of the time', ' av gångerna'));
       t(fo.up5 >= fa.up5 - 5 ? T(', about as often as normal, so overbought was not a sell signal.', ', ungefär lika ofta som vanligt, så överköpt var ingen säljsignal.') : T(', less often than normal, a slight sign of a pause.', ', mer sällan än vanligt, ett svagt tecken på en paus.'));
+    }
+    if (tShort.n) {
+      t(T(' Overbought in a bear trend, Connors\' short signal: ', ' Överköpt i björntrend, Connors blankningssignal: ')); b(tShort.n + T(' trades', ' affärer'));
+      t(T(', of which ', ', varav ')); b(pctS(tShort.win), tShort.win >= 60 ? 'up' : 'down'); t(T(' were winners (avg ', ' var vinnare (snitt ')); b(pct(tShort.avg), tShort.avg >= 0 ? 'up' : 'down'); t(T(' per trade).', ' per affär).'));
     }
     t(T(' Before costs and tax; there are few trades, so treat the figures as indicative.', ' Före avgifter och skatt. Affärerna är få, så se siffrorna som en fingervisning.'));
   }
@@ -1601,6 +1627,10 @@
     if (['#rsi2', '#connors'].includes(location.hash)) open();
   })();
   const dailyP = fetch('daily_omxspi.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null).catch(() => null);
+  document.querySelectorAll('#cob-seg button').forEach((btn) => btn.addEventListener('click', () => {
+    document.querySelectorAll('#cob-seg button').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
+    CXOB = btn.dataset.ob === '1'; if (CX) drawConnors();
+  }));
   ['cthr-seg', 'crange-seg'].forEach((id) => document.querySelectorAll('#' + id + ' button').forEach((btn) => btn.addEventListener('click', () => {
     document.querySelectorAll('#' + id + ' button').forEach((o) => o.setAttribute('aria-pressed', String(o === btn)));
     if (id === 'cthr-seg') CXTHR = Number(btn.dataset.thr); else CXDAYS = Number(btn.dataset.days);
