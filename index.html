@@ -130,6 +130,14 @@
     .checks .v { font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right; white-space: nowrap; }
     .hist { margin-top: 14px; font-size: 13px; color: var(--muted2); line-height: 1.6; }
     .hist b { color: var(--text); font-weight: 400; }
+    /* Bulltrender OMXSPI (från alex30free.github.io/bulltrends) */
+    .bt-regim { margin-top: 14px; border-left: 4px solid var(--muted2); padding: 4px 0 4px 14px; }
+    .bt-regim h3 { font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 15px; margin-bottom: 4px; }
+    .bt-regim p { font-size: 14px; line-height: 1.55; }
+    .bt-regim ul { margin-top: 8px; padding-left: 18px; color: var(--muted2); font-size: 13px; line-height: 1.5; }
+    .bt-tabs { margin-top: 16px; }
+    .bt-img { width: 100%; height: auto; display: block; margin-top: 12px; border: 1px solid var(--border2); border-radius: 6px; background: var(--surface); }
+    .bt-link { display: inline-block; margin-top: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -160,6 +168,26 @@
     <ul class="checks" id="v-checks"></ul>
     <p class="hist" id="v-hist"></p>
     <button type="button" class="stats-btn" id="stats-open"><span data-lang="sv">📊 Statistik i bull- och björntrend</span><span data-lang="en">📊 Statistics in bull and bear trends</span></button>
+  </section>
+
+  <section class="card" id="bulltrend">
+    <h2><span data-lang="sv">Bulltrenden i OMXSPI · mönster, tid och volatilitet</span><span data-lang="en">The OMXSPI bull trend · pattern, time and volatility</span></h2>
+    <p class="note" data-lang="sv">Nuvarande bulltrend jämförd med 2000-talets tidigare bulltrender (2002–2007, 2008–2015, 2016–2022), samt volatilitetens läge. Uppdateras automatiskt varje vecka.</p>
+    <p class="note" data-lang="en">The current bull trend compared with earlier bull trends this century (2002–2007, 2008–2015, 2016–2022), plus the state of volatility. Updated automatically every week.</p>
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label"><span data-lang="sv">Dag i trenden</span><span data-lang="en">Day in trend</span></div><div class="kpi-val" id="bt-dag">–</div><div class="kpi-sub" id="bt-dag-sub"></div></div>
+      <div class="kpi"><div class="kpi-label"><span data-lang="sv">Avverkat i tid</span><span data-lang="en">Time elapsed</span></div><div class="kpi-val" id="bt-tid">–</div><div class="kpi-sub"><span data-lang="sv">mot snittet av tidigare trender</span><span data-lang="en">vs the average earlier trend</span></div></div>
+      <div class="kpi"><div class="kpi-label"><span data-lang="sv">Hittills i år</span><span data-lang="en">Year to date</span></div><div class="kpi-val" id="bt-ar">–</div><div class="kpi-sub" id="bt-ar-sub"></div></div>
+      <div class="kpi"><div class="kpi-label"><span data-lang="sv">Volatilitet 20 d</span><span data-lang="en">Volatility 20d</span></div><div class="kpi-val" id="bt-vol">–</div><div class="kpi-sub" id="bt-vol-sub"></div></div>
+    </div>
+    <div class="bt-regim" id="bt-regim"></div>
+    <div class="seg bt-tabs" id="bt-tabs">
+      <button type="button" data-img="ar" aria-pressed="true"><span data-lang="sv">I år mot mönstret</span><span data-lang="en">This year vs pattern</span></button>
+      <button type="button" data-img="bulltrender" aria-pressed="false"><span data-lang="sv">Alla bulltrender</span><span data-lang="en">All bull trends</span></button>
+      <button type="button" data-img="volatilitet" aria-pressed="false"><span data-lang="sv">Volatilitet</span><span data-lang="en">Volatility</span></button>
+    </div>
+    <img class="bt-img" id="bt-img" alt="OMXSPI bulltrend" loading="lazy">
+    <a class="bt-link" href="/bulltrends/"><span data-lang="sv">Öppna hela sidan med tolkning →</span><span data-lang="en">Open the full page with interpretation →</span></a>
   </section>
 
   <section class="card" id="connors" hidden>
@@ -1662,6 +1690,41 @@
       document.getElementById('updated').textContent = T('Could not load data', 'Kunde inte ladda data');
       document.getElementById('summary-text').innerHTML = '<span class="err">Could not load data.json (' + String(e.message).replace(/[<>&]/g, '') + '). Run the "Update sector trends" workflow once.</span>';
     });
+})();
+</script>
+<script>
+/* Bulltrender OMXSPI – hämtar nyckeltal och bilder från /bulltrends/ (samma GitHub Pages-domän) */
+(function () {
+  const BAS = '/bulltrends/';
+  const sec = document.getElementById('bulltrend'); if (!sec) return;
+  const img = document.getElementById('bt-img');
+  let ver = '';
+  const pct = (x, d = 1) => (x >= 0 ? '+' : '') + (x * 100).toFixed(d).replace('.', ',') + ' %';
+  const both = (sv, en) => `<span data-lang="sv">${sv}</span><span data-lang="en">${en}</span>`;
+  function visa(namn) {
+    img.src = BAS + namn + '.png' + (ver ? '?v=' + ver : '');
+    sec.querySelectorAll('#bt-tabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.img === namn)));
+  }
+  sec.querySelectorAll('#bt-tabs button').forEach(b => b.addEventListener('click', () => visa(b.dataset.img)));
+  fetch(BAS + 'nyckeltal.json', { cache: 'no-cache' }).then(r => r.json()).then(n => {
+    ver = n.senaste_kurs_datum || '';
+    const nu = n.nuvarande, a = n.ar, v = n.volatilitet, r = n.regim;
+    document.getElementById('bt-dag').textContent = nu.dagar;
+    document.getElementById('bt-dag-sub').innerHTML = both(`${pct(nu.uppgang)} sedan botten`, `${pct(nu.uppgang)} since the low`);
+    document.getElementById('bt-tid').textContent = Math.round(n.avverkat_i_tid * 100) + ' %';
+    document.getElementById('bt-ar').textContent = pct(a.utfall_hittills);
+    document.getElementById('bt-ar-sub').innerHTML = both(`mönstret: ${pct(a.monster_samma_dag)}`, `pattern: ${pct(a.monster_samma_dag)}`);
+    document.getElementById('bt-vol').textContent = (v.vol_20d * 100).toFixed(1).replace('.', ',') + ' %';
+    document.getElementById('bt-vol-sub').innerHTML = both(`kvot 20/100 d: ${v.kvot_20_100.toFixed(2).replace('.', ',')}`, `ratio 20/100d: ${v.kvot_20_100.toFixed(2)}`);
+    if (r) {
+      const farg = { gron: 'var(--up)', gul: 'var(--ma)', rod: 'var(--down)' }[r.farg] || 'var(--muted2)';
+      const box = document.getElementById('bt-regim');
+      box.style.borderLeftColor = farg;
+      const fl = (r.flaggor || []).map(f => `<li>${both(f.sv, f.en)}</li>`).join('');
+      box.innerHTML = `<h3 style="color:${farg}">● ${both(r.rubrik.sv, r.rubrik.en)}</h3><p>${both(r.text.sv, r.text.en)}</p>${fl ? `<ul>${fl}</ul>` : ''}`;
+    }
+    visa('ar');
+  }).catch(() => { visa('ar'); });
 })();
 </script>
 </body>
