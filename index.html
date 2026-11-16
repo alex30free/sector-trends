@@ -184,6 +184,7 @@
     <div class="seg bt-tabs" id="bt-tabs">
       <button type="button" data-img="ar" aria-pressed="true"><span data-lang="sv">I år mot mönstret</span><span data-lang="en">This year vs pattern</span></button>
       <button type="button" data-img="bulltrender" aria-pressed="false"><span data-lang="sv">Alla bulltrender</span><span data-lang="en">All bull trends</span></button>
+      <button type="button" data-img="vagor" aria-pressed="false"><span data-lang="sv">Fem vågor</span><span data-lang="en">Five waves</span></button>
       <button type="button" data-img="volatilitet" aria-pressed="false"><span data-lang="sv">Volatilitet</span><span data-lang="en">Volatility</span></button>
     </div>
     <img class="bt-img" id="bt-img" alt="OMXSPI bulltrend" loading="lazy">
@@ -1710,7 +1711,8 @@
     ver = n.senaste_kurs_datum || '';
     const nu = n.nuvarande, a = n.ar, v = n.volatilitet, r = n.regim;
     document.getElementById('bt-dag').textContent = nu.dagar;
-    document.getElementById('bt-dag-sub').innerHTML = both(`${pct(nu.uppgang)} sedan botten`, `${pct(nu.uppgang)} since the low`);
+    const w = (n.vagor || {}).nu;
+    document.getElementById('bt-dag-sub').innerHTML = both(`${pct(nu.uppgang)} sedan botten` + (w ? ` · våg ${w.vag} av 5` : ''), `${pct(nu.uppgang)} since the low` + (w ? ` · wave ${w.vag} of 5` : ''));
     document.getElementById('bt-tid').textContent = Math.round(n.avverkat_i_tid * 100) + ' %';
     document.getElementById('bt-ar').textContent = pct(a.utfall_hittills);
     document.getElementById('bt-ar-sub').innerHTML = both(`mönstret: ${pct(a.monster_samma_dag)}`, `pattern: ${pct(a.monster_samma_dag)}`);
