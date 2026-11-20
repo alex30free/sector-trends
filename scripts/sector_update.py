@@ -92,6 +92,15 @@ def fetch_daily(symbol):
                     rows[-1] = (d, c, a)
                 else:
                     rows.append((d, c, a))
+            # Late in the evening and at night Yahoo often leaves the latest trading day
+            # out of the daily bars, while meta still carries that day's closing price.
+            # Add it back so a delayed run does not fall a day behind.
+            meta = res.get("meta", {})
+            mt, mp = meta.get("regularMarketTime"), meta.get("regularMarketPrice")
+            if rows and mt and mp and mp > 0:
+                md = datetime.fromtimestamp(mt + off, timezone.utc).date()
+                if md > rows[-1][0] and md.weekday() < 5:
+                    rows.append((md, mp, mp))
             if len(rows) < 20:
                 raise ValueError("only %d rows" % len(rows))
             return rows
@@ -209,6 +218,13 @@ def main():
         return 1
 
     last_day = max(v[-1][0] for v in daily.values())
+    # Never let older prices overwrite newer ones: if this download ends before
+    # the date already in data.json, keep the file as it is.
+    prev_through = load_previous().get("data_through") or ""
+    if prev_through and last_day.isoformat() < prev_through:
+        print("WARN download ends %s, older than data.json (%s); data.json left unchanged"
+              % (last_day, prev_through))
+        return 0
     end = last_day + timedelta(days=(4 - last_day.weekday()) % 7)   # Friday of the latest week
     weeks = fridays(end)
 
